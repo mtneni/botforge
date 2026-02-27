@@ -1,16 +1,36 @@
 services:
   neo4j:
     image: neo4j:5-community
-    container_name: urbot-neo4j
+    container_name: botforge-neo4j
     ports:
       - "7891:7687"   # Bolt protocol
       - "8892:7474"   # HTTP browser
     environment:
-      - NEO4J_AUTH=neo4j/urbot123
+      - NEO4J_AUTH=neo4j/botforge123
       - NEO4J_PLUGINS=["apoc"]
     volumes:
-      - urbot_neo4j_data:/data
-      - urbot_neo4j_logs:/logs
+      - botforge_neo4j_data:/data
+      - botforge_neo4j_logs:/logs
+
+  postgres:
+    image: postgres:16
+    container_name: botforge-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=botforge
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=botforge123
+    volumes:
+      - botforge-postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: botforge-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - botforge-redis-data:/data
 
   astrology-api:
     profiles:
@@ -19,12 +39,11 @@ services:
       context: .
       dockerfile: Dockerfile.astrology-api
     container_name: botforge-astrology-api
-    profiles:
-      - astrology
     ports:
       - "3000:3000"
 
 volumes:
-  botforge-neo4j-data:
+  botforge_neo4j_data:
+  botforge_neo4j_logs:
   botforge-postgres-data:
   botforge-redis-data:
