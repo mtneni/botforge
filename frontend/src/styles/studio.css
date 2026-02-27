@@ -1,0 +1,274 @@
+/* ── Persona Studio ───────────────────────── */
+
+.studio-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 200ms ease both;
+}
+
+.studio-panel {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-xl);
+    width: min(480px, 92vw);
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: var(--space-5);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+    animation: slideUp 300ms ease both;
+}
+
+.studio-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-2);
+}
+
+.studio-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.studio-title svg {
+    color: rgba(168, 85, 247, 0.8);
+}
+
+.studio-close {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    transition: all 150ms ease;
+}
+
+.studio-close:hover {
+    background: var(--color-hover);
+    color: var(--color-text-primary);
+}
+
+.studio-subtitle {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-4) 0;
+    line-height: 1.5;
+}
+
+/* ── Persona Cards ───────────────────────── */
+
+.studio-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.persona-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--color-surface-alt, rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all 200ms ease;
+    text-align: left;
+    position: relative;
+    width: 100%;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+}
+
+.persona-card:hover:not(:disabled) {
+    border-color: rgba(168, 85, 247, 0.3);
+    background: rgba(168, 85, 247, 0.04);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.08);
+}
+
+.persona-card.active {
+    border-color: rgba(99, 102, 241, 0.4);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(168, 85, 247, 0.06));
+    cursor: default;
+}
+
+.persona-card.switching {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.persona-card:disabled:not(.active) {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+.persona-card-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+    color: rgba(168, 85, 247, 0.8);
+}
+
+.persona-card.active .persona-card-icon {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+    color: rgba(168, 85, 247, 1);
+}
+
+.persona-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.persona-card-name {
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+}
+
+.persona-card-desc {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+}
+
+.persona-card-badge {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(99, 102, 241, 0.8);
+    background: rgba(99, 102, 241, 0.1);
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+}
+
+/* ── Footer ───────────────────────── */
+
+.studio-footer {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+}
+
+.studio-hint {
+    font-size: 11px;
+    color: var(--color-text-tertiary, var(--color-text-secondary));
+    font-style: italic;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ── Creation Form ───────────────────────── */
+
+.studio-creation-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    animation: fadeIn 250ms ease both;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    letter-spacing: 0.05em;
+}
+
+.form-group input,
+.form-group textarea {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--color-accent);
+}
+
+.creation-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+}
+
+.btn-primary {
+    flex: 1;
+    background: var(--color-accent);
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-glass-border);
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}
+
+.persona-card.create-btn {
+    border-style: dashed;
+    background: transparent;
+}
+
+.persona-card.create-btn .persona-card-icon {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-muted);
+}
+
+.persona-card.create-btn:hover {
+    border-style: solid;
+    background: var(--color-bg-hover);
+}

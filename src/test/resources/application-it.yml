@@ -1,0 +1,14 @@
+spring:
+  main:
+    web-application-type: none
+
+botforge:
+  chat:
+    show-prompts: false
+    show-responses: false
+  memory:
+    window-size: 20
+    overlap-size: 2
+    trigger-interval: 6
+    show-prompts: false
+    show-responses: false

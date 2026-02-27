@@ -1,0 +1,128 @@
+server:
+  port: 8080
+
+# Neo4j Database Configuration (Drivine)
+database:
+  datasources:
+    neo:
+      type: NEO4J
+      host: ${NEO4J_HOST:localhost}
+      port: ${NEO4J_PORT:7891}
+      user-name: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:botforge123}
+      database-name: ${NEO4J_DATABASE:neo4j}
+
+neo4j:
+  http:
+    port: ${NEO4J_HTTP_PORT:8892}
+
+botforge:
+  # For document ingestion underpinning RAG
+  ingestion:
+    max-chunk-size: 800
+    overlap-size: 100
+    embedding-batch-size: 800
+
+  chat:
+    llm:
+      model: gpt-4.1-mini
+      temperature: 0.0
+    persona: assistant
+    max-words: 80
+    memory-eager-limit: 50
+    objective: qa
+    behaviour: default
+    tagline: Chatbot with RAG and memory
+
+  bot-packages: ["org.legendstack.basebot.tools", "org.legendstack.basebot.rag"]
+
+  memory:
+    enabled: true
+
+    entity-packages: []
+
+    extraction-llm:
+      model: gpt-4.1-mini
+      temperature: 0.0
+      timeout: 240s
+
+    entity-resolution-llm:
+      model: gpt-4.1-mini
+      temperature: 0.0
+      timeout: 120s
+
+    classify-llm:
+      model: gpt-4.1-nano
+      temperature: 0.0
+    projection-llm:
+      model: gpt-4.1-nano
+      temperature: 0.0
+    window-size: 20
+    overlap-size: 2
+    trigger-interval: 3
+    show-prompts: false
+    show-responses: false
+
+management:
+  health:
+    neo4j:
+      enabled: false  # Drivine manages its own Neo4j connection; disable Spring's default health check
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:botforge}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:botforge123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: botforge
+        version: 1.0.0
+        request-timeout: 30s
+        type: SYNC
+        stdio:
+          connections:
+            brave-search-mcp:
+              command: docker
+              args:
+                - run
+                - -i
+                - --rm
+                - -e
+                - BRAVE_API_KEY
+                - mcp/brave-search
+              env:
+                BRAVE_API_KEY: ${BRAVE_API_KEY:}
+
+astrology:
+  api:
+    base-url: ${ASTROLOGY_API_URL:http://localhost:3000}
+
+embabel:
+  models:
+    default-llm: gpt-4.1-mini
+    default-embedding-model: text-embedding-3-small
+
+  agent:
+    platform:
+      http-client:
+        connect-timeout: 30s
+        read-timeout: 10m
