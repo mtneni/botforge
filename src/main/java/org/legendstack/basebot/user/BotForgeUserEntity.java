@@ -32,6 +32,9 @@ public class BotForgeUserEntity {
     @Column(length = 32)
     private String role = "USER";
 
+    @Column(name = "team_id", length = 64)
+    private String teamId;
+
     protected BotForgeUserEntity() {
         // JPA no-arg constructor
     }
@@ -73,6 +76,14 @@ public class BotForgeUserEntity {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getTeamId() {
+        return teamId;
+    }
+
+    public void setTeamId(String teamId) {
+        this.teamId = teamId;
     }
 
     /**

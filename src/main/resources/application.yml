@@ -18,6 +18,8 @@ neo4j:
     port: ${NEO4J_HTTP_PORT:8892}
 
 botforge:
+  token-budget:
+    daily-limit: ${BOTFORGE_TOKEN_LIMIT:100000}
   cors:
     allowed-origins: http://localhost:5173,http://localhost:3000
   mcp-tools-description: "Tools for web searching and reading/writing to the local filesystem workspace. Use the filesystem tools to output code, manage files, and read data."
@@ -139,9 +141,6 @@ spring:
                 - "@modelcontextprotocol/server-filesystem"
                 - "G:/ws-spring-ai/urbot/workspace"
 
-astrology:
-  api:
-    base-url: ${ASTROLOGY_API_URL:http://localhost:3000}
 
 embabel:
   models:

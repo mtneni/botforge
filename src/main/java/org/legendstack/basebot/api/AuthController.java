@@ -1,5 +1,6 @@
 package org.legendstack.basebot.api;
 
+import org.legendstack.basebot.audit.AuditService;
 import org.legendstack.basebot.user.DummyBotForgeUserService;
 import org.legendstack.basebot.user.BotForgeUser;
 import org.legendstack.basebot.user.BotForgeUserEntity;
@@ -28,12 +29,15 @@ public class AuthController {
     private final BotForgeUserService userService;
     private final BotForgeUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditService auditService;
 
     public AuthController(BotForgeUserService userService,
-            BotForgeUserRepository userRepository) {
+            BotForgeUserRepository userRepository,
+            AuditService auditService) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
+        this.auditService = auditService;
     }
 
     public record LoginRequest(String username, String password) {
@@ -71,6 +75,7 @@ public class AuthController {
             session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
             var user = userService.getAuthenticatedUser();
+            auditService.log(user, AuditService.ACTION_LOGIN, "Login successful");
             return ResponseEntity.ok(toResponse(user));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -102,6 +107,9 @@ public class AuthController {
 
         var entity = new BotForgeUserEntity(id, request.username(), displayName, hash);
         userRepository.save(entity);
+
+        auditService.logAnonymous(request.username(), AuditService.ACTION_REGISTER,
+                "New user registered");
 
         return ResponseEntity.ok(Map.of(
                 "message", "User registered successfully",
