@@ -54,6 +54,10 @@ class SecurityConfiguration {
                                                 .requestMatchers("/api/auth/login", "/api/auth/users", "/api/config")
                                                 .permitAll()
                                                 .requestMatchers("/images/**", "/assets/**").permitAll()
+                                                .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
+                                                                "/v3/api-docs/**")
+                                                .permitAll()
+                                                .requestMatchers("/actuator/**").permitAll()
                                                 .requestMatchers("/api/**").authenticated()
                                                 .anyRequest().permitAll())
                                 .userDetailsService(userService)

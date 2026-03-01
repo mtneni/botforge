@@ -71,6 +71,19 @@ management:
   health:
     neo4j:
       enabled: false  # Drivine manages its own Neo4j connection; disable Spring's default health check
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: botforge
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 spring:
   profiles:
