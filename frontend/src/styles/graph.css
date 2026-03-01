@@ -1,0 +1,93 @@
+/* =========================================
+   Knowledge Graph Component Styling
+   ========================================= */
+
+.knowledge-graph-container {
+    position: relative;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    transition: all var(--transition-slow);
+}
+
+.knowledge-graph-container.fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0;
+    backdrop-filter: blur(40px);
+}
+
+/* Tooltip Styling */
+.graph-tooltip {
+    background: rgba(19, 19, 20, 0.95);
+    border: 1px solid var(--color-glass-border);
+    backdrop-filter: blur(12px);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-size: 12px;
+    color: var(--color-text-primary);
+    pointer-events: none;
+    max-width: 200px;
+}
+
+.graph-tooltip strong {
+    display: block;
+    color: var(--color-accent);
+    margin-bottom: 2px;
+    font-size: 13px;
+}
+
+.graph-tooltip small {
+    display: block;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Controls */
+.graph-controls {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+}
+
+.secondary-btn.icon-only {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-glass);
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-full);
+    color: var(--color-text-muted);
+    transition: all var(--transition-fast);
+}
+
+.secondary-btn.icon-only:hover {
+    background: var(--color-glass-hover);
+    color: var(--color-text-primary);
+    border-color: var(--color-accent);
+}
+
+/* Legend */
+.graph-legend {
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Animations */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}

@@ -15,10 +15,14 @@ import {
     Eraser,
     Database,
     Layers,
+    List,
+    Network
 } from 'lucide-react'
 import { ChunkVisualization } from '../chat/ChunkVisualization'
+import { KnowledgeGraph } from '../chat/KnowledgeGraph'
 
 type Tab = 'memory' | 'entities' | 'documents' | 'upload' | 'url'
+type ViewMode = 'list' | 'graph'
 
 interface UserDataDialogProps {
     onClose: () => void
@@ -39,10 +43,11 @@ export function UserDataDialog({ onClose }: UserDataDialogProps) {
     const [context, setContext] = useState('')
     const [url, setUrl] = useState('')
     const [viewingDocChunks, setViewingDocChunks] = useState<string | null>(null)
+    const [viewMode, setViewMode] = useState<ViewMode>('list')
 
     // Load contexts
     useEffect(() => {
-        api.get('/api/context').then((data: any) => {
+        api.get('/api/contexts').then((data: any) => {
             setContexts(data.contexts || [])
             setContext(data.current || '')
         }).catch(() => { })
@@ -78,7 +83,7 @@ export function UserDataDialog({ onClose }: UserDataDialogProps) {
     // Context switch
     const switchContext = async (newCtx: string) => {
         try {
-            await api.post('/api/context/switch', { contextId: newCtx })
+            await api.put('/api/contexts/current', { context: newCtx })
             setContext(newCtx)
             toast.success(`Switched to ${newCtx}`)
             loadData()
@@ -201,16 +206,38 @@ export function UserDataDialog({ onClose }: UserDataDialogProps) {
 
                     {!loading && tab === 'memory' && (
                         <>
-                            <div className="memory-actions" style={{ marginBottom: 16 }}>
-                                <button className="memory-action-btn" onClick={loadData}>
-                                    <RefreshCw size={13} /> Refresh
-                                </button>
-                                <button className="memory-action-btn danger" onClick={handleClearMemory}>
-                                    <Eraser size={13} /> Clear All
-                                </button>
+                            <div className="memory-actions" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div className="memory-view-toggle flex gap-2">
+                                    <button
+                                        className={`secondary-btn icon-only ${viewMode === 'list' ? 'active' : ''}`}
+                                        onClick={() => setViewMode('list')}
+                                        title="List View"
+                                    >
+                                        <List size={14} />
+                                    </button>
+                                    <button
+                                        className={`secondary-btn icon-only ${viewMode === 'graph' ? 'active' : ''}`}
+                                        onClick={() => setViewMode('graph')}
+                                        title="Graph View"
+                                    >
+                                        <Network size={14} />
+                                    </button>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button className="memory-action-btn" onClick={loadData}>
+                                        <RefreshCw size={13} /> Refresh
+                                    </button>
+                                    <button className="memory-action-btn danger" onClick={handleClearMemory}>
+                                        <Eraser size={13} /> Clear All
+                                    </button>
+                                </div>
                             </div>
 
-                            {propositions.length === 0 ? (
+                            {viewMode === 'graph' ? (
+                                <div style={{ minHeight: '400px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-glass-border)' }}>
+                                    <KnowledgeGraph contextId={context === 'global' ? undefined : context} height={400} />
+                                </div>
+                            ) : propositions.length === 0 ? (
                                 <div className="drawer-empty">
                                     <div className="drawer-empty-icon"><Brain size={48} /></div>
                                     <p>No memories yet — start chatting to build your knowledge base.</p>

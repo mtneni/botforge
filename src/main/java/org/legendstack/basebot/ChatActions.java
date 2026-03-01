@@ -112,39 +112,106 @@ public class ChatActions {
         var messages = conversation.getMessages();
         var userPrompt = messages.get(messages.size() - 1).getContent();
 
+        StringBuilder workingMemory = new StringBuilder();
+
         if ("orchestrator".equals(effectiveProperties.chat().persona())) {
-            logger.info("Orchestrator active. Deciding sub-agent...");
+            logger.info("Orchestrator active. Deciding sub-agent plan...");
             try {
+                java.util.List<PersonaController.PersonaPreset> allPersonas = new java.util.ArrayList<>(
+                        PersonaController.PRESETS);
+                customPersonaRepository.findByUserId(user.getId())
+                        .forEach(c -> allPersonas.add(new PersonaController.PersonaPreset(c.getId(), c.getDisplayName(),
+                                c.getObjective(), c.getBehaviour(), c.getDescription(), c.getIcon())));
+
+                String personaList = allPersonas.stream()
+                        .filter(p -> !"orchestrator".equals(p.id()))
+                        .map(p -> "- '" + p.id() + "': " + p.description())
+                        .collect(java.util.stream.Collectors.joining("\n"));
+
                 String prompt = """
-                        Analyze the user's latest request and choose the best specialized persona.
+                        Analyze the user's complex request and develop a sequential execution plan.
+                        If the task is simple, return a plan with exactly ONE step assigned to the best persona.
+                        If the task is complex, break it into multiple steps assigned to specialized personas.
                         Available personas:
-                        - 'developer': for writing code, debugging, or technical architecture.
-                        - 'security': for code audits, vulnerabilities, and compliance.
-                        - 'astrid': for creative writing, ui design suggestions, or astrology.
-                        - 'assistant': for general knowledge, data retrieval, or anything else.
+                        %s
 
                         Recent Context:
                         %s
 
                         User Message:
                         %s
-                        """.formatted(recentContextStr, userPrompt);
+                        """.formatted(personaList, recentContextStr, userPrompt);
 
-                OrchestrationDecision decision = context.ai()
+                OrchestrationPlan plan = context.ai()
                         .withLlm(effectiveProperties.chat().llm())
-                        .createObject(prompt, OrchestrationDecision.class);
+                        .createObject(prompt, OrchestrationPlan.class);
 
-                String chosenPersona = decision.personaId();
-                if (chosenPersona == null || chosenPersona.isBlank()
-                        || chosenPersona.equalsIgnoreCase("orchestrator")) {
-                    chosenPersona = "assistant";
+                if (plan != null && plan.steps() != null && !plan.steps().isEmpty()) {
+                    List<SubTask> steps = plan.steps();
+                    logger.info("Orchestrator generated a {}-step plan.", steps.size());
+
+                    if (steps.size() > 1) {
+                        // MULTI-STEP EXECUTION
+                        for (int i = 0; i < steps.size() - 1; i++) {
+                            SubTask step = steps.get(i);
+                            String stepPersona = step.personaId();
+                            if (stepPersona == null || stepPersona.equalsIgnoreCase("orchestrator"))
+                                stepPersona = "assistant";
+
+                            logger.info("Executing SubTask {} of {}: [{}] -> {}", i + 1, steps.size(), stepPersona,
+                                    step.objective());
+
+                            var stepProps = overwritePersona(properties, stepPersona);
+                            String stepObjective = "Sub-task Objective: " + step.objective()
+                                    + "\n\nOriginal User Request: " + userPrompt;
+                            if (workingMemory.length() > 0) {
+                                stepObjective += "\n\nContext from previous steps:\n" + workingMemory.toString();
+                            }
+
+                            var subTools = new LinkedList<>(globalTools);
+                            var subReferences = new LinkedList<>(globalReferences);
+                            subReferences.add(user.personalDocs(searchOperations));
+                            if (properties.memory().enabled()) {
+                                var memory = Memory.forContext(user.currentContext())
+                                        .withRepository(propositionRepository)
+                                        .withProjector(memoryProjector)
+                                        .withEagerSearchAbout(stepObjective, properties.chat().memoryEagerLimit());
+                                subReferences.add(memory);
+                                subTools.add(memory);
+                            }
+
+                            String stepPrompt = """
+                                    You are a specialized agent executing a sub-task.
+
+                                    %s
+
+                                    Formulate a complete, detailed response to satisfy this objective. Ensure your output provides everything the final synthesizer needs.
+                                    """
+                                    .formatted(stepObjective);
+
+                            SubTaskResult subMsg = context.ai()
+                                    .withLlm(stepProps.chat().llm())
+                                    .withTools(subTools)
+                                    .withReferences(subReferences)
+                                    .createObject(stepPrompt, SubTaskResult.class);
+
+                            workingMemory.append("=== Output from ").append(stepPersona).append(" ===\n");
+                            workingMemory.append(subMsg.output()).append("\n\n");
+                        }
+                    }
+
+                    SubTask finalStep = steps.get(steps.size() - 1);
+                    String finalPersona = finalStep.personaId();
+                    if (finalPersona == null || finalPersona.equalsIgnoreCase("orchestrator"))
+                        finalPersona = "assistant";
+
+                    logger.info("Orchestrator selected final synthesis persona: {}", finalPersona);
+                    effectiveProperties = overwritePersona(effectiveProperties, finalPersona);
+                } else {
+                    effectiveProperties = overwritePersona(effectiveProperties, "assistant");
                 }
-                logger.info("Orchestrator selected persona: {}", chosenPersona);
-
-                // Override the effective persona
-                effectiveProperties = overwritePersona(effectiveProperties, chosenPersona);
             } catch (Exception e) {
-                logger.error("Orchestrator failed to decide, falling back to assistant", e);
+                logger.error("Orchestrator failed to plan, falling back to assistant", e);
                 effectiveProperties = overwritePersona(effectiveProperties, "assistant");
             }
         }
@@ -190,7 +257,8 @@ public class ChatActions {
                 .rendering("botforge")
                 .respondWithSystemPrompt(conversation, Map.of(
                         "properties", effectiveProperties,
-                        "user", user));
+                        "user", user,
+                        "working_memory", workingMemory.toString()));
 
         var msg = conversation.addMessage(assistantMessage);
 
@@ -285,8 +353,19 @@ public class ChatActions {
                 baseProps.initialDocuments(), baseProps.stylesheet(), baseProps.mcpToolsDescription());
     }
 
-    @com.fasterxml.jackson.annotation.JsonClassDescription("Decision on which persona should handle the user request")
-    public record OrchestrationDecision(
-            @com.fasterxml.jackson.annotation.JsonPropertyDescription("The ID of the persona best suited for the task. Use 'developer' for coding, 'security' for auditing, 'astrid' for astrology/creative, and 'assistant' for general knowledge or if unsure.") String personaId) {
+    @com.fasterxml.jackson.annotation.JsonClassDescription("An execution plan broken down into specialized sub-tasks to be performed sequentially by different personas.")
+    public record OrchestrationPlan(
+            @com.fasterxml.jackson.annotation.JsonPropertyDescription("The sequence of sub-tasks to execute. If the user request is simple, just return a single sub-task.") List<SubTask> steps) {
+    }
+
+    @com.fasterxml.jackson.annotation.JsonClassDescription("A single sub-task in the execution plan")
+    public record SubTask(
+            @com.fasterxml.jackson.annotation.JsonPropertyDescription("The ID of the persona best suited for this sub-task. Use 'assistant' if unsure.") String personaId,
+            @com.fasterxml.jackson.annotation.JsonPropertyDescription("The specific objective of this sub-task.") String objective) {
+    }
+
+    @com.fasterxml.jackson.annotation.JsonClassDescription("The detailed output of the sub-task execution")
+    public record SubTaskResult(
+            @com.fasterxml.jackson.annotation.JsonPropertyDescription("Your full, detailed response satisfying the sub-task objective") String output) {
     }
 }

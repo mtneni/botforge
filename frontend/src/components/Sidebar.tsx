@@ -114,7 +114,7 @@ export function Sidebar({
                 <section className="sidebar-section">
                     {!isCollapsed && <span className="section-label">Workspace</span>}
                     <div className="nav-group">
-                        <Link to="/" className="new-chat-btn-link" onClick={onNewChat}>
+                        <Link to="/" className="new-chat-btn-link" onClick={() => onNewChat()}>
                             <button className="new-chat-btn" title="New Chat">
                                 <Plus size={18} />
                                 <span>New Chat</span>

@@ -43,7 +43,7 @@ export function DataPage() {
     const [viewingDocChunks, setViewingDocChunks] = useState<string | null>(null)
 
     useEffect(() => {
-        api.get('/api/context').then((data: any) => {
+        api.get('/api/contexts').then((data: any) => {
             setContexts(data.contexts || [])
             setContext(data.current || '')
         }).catch(() => { })
@@ -60,8 +60,8 @@ export function DataPage() {
                 setEntities(data.entities || [])
             } else if (tab === 'documents') {
                 const [docs, stats] = await Promise.all([
-                    api.get<any[]>('/api/documents?context=personal'),
-                    api.get<any>('/api/documents/stats?context=personal'),
+                    api.get<any[]>('/api/documents'),
+                    api.get<any>('/api/documents/stats'),
                 ])
                 setDocuments(docs || [])
                 setDocStats(stats)
@@ -76,7 +76,7 @@ export function DataPage() {
     const switchContext = async (newCtx: string) => {
         if (newCtx === context) return
         try {
-            await api.post('/api/context/switch', { contextId: newCtx })
+            await api.put('/api/contexts/current', { context: newCtx })
             setContext(newCtx)
             toast.success(`Active context switched to ${newCtx}`)
             loadData()
@@ -105,7 +105,7 @@ export function DataPage() {
         const file = e.target.files?.[0]
         if (!file) return
         try {
-            const res = await api.upload<any>('/api/documents/upload?context=personal', file)
+            const res = await api.upload<any>('/api/documents/upload', file)
             toast.success(res.message || `Uploaded "${file.name}" to private vault`)
             e.target.value = ''
             setTab('documents')
@@ -116,7 +116,7 @@ export function DataPage() {
     const handleUrlIngest = async () => {
         if (!url.trim()) return
         try {
-            await api.post('/api/documents/url?context=personal', { url })
+            await api.post('/api/documents/url', { url })
             toast.success('URL added to your private collection')
             setUrl('')
             setTab('documents')

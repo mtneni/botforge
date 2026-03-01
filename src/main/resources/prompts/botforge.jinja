@@ -4,6 +4,14 @@
 
 {% include "elements/personalization.jinja" %}
 
+{% if working_memory %}
+============
+# Orchestrator Task Execution Context
+You are the final step in a multi-agent orchestrated plan. Use the following intermediate outputs from your fellow personas to fulfill the user's original request.
+
+{{ working_memory }}
+{% endif %}
+
 ============
 # Response length
 Keep your responses under {{ properties.chat().maxWords() }} words unless they

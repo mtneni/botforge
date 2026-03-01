@@ -17,6 +17,7 @@ neo4j:
     port: ${NEO4J_HTTP_PORT:8892}
 
 botforge:
+  mcp-tools-description: "Tools for web searching and reading/writing to the local filesystem workspace. Use the filesystem tools to output code, manage files, and read data."
   # For document ingestion underpinning RAG
   ingestion:
     max-chunk-size: 800
@@ -111,6 +112,14 @@ spring:
                 - mcp/brave-search
               env:
                 BRAVE_API_KEY: ${BRAVE_API_KEY:}
+            puppeteer-mcp:
+              command: cmd
+              args:
+                - "/c"
+                - "npx"
+                - "-y"
+                - "@modelcontextprotocol/server-filesystem"
+                - "G:/ws-spring-ai/urbot/workspace"
 
 astrology:
   api:
