@@ -1,6 +1,7 @@
 server:
   port: 8080
 
+
 # Neo4j Database Configuration (Drivine)
 database:
   datasources:
@@ -17,6 +18,8 @@ neo4j:
     port: ${NEO4J_HTTP_PORT:8892}
 
 botforge:
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:3000
   mcp-tools-description: "Tools for web searching and reading/writing to the local filesystem workspace. Use the filesystem tools to output code, manage files, and read data."
   # For document ingestion underpinning RAG
   ingestion:
@@ -70,6 +73,8 @@ management:
       enabled: false  # Drivine manages its own Neo4j connection; disable Spring's default health check
 
 spring:
+  profiles:
+    active: dev
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:botforge}
     username: ${POSTGRES_USER:postgres}

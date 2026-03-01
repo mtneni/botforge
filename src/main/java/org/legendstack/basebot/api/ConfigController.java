@@ -1,6 +1,7 @@
 package org.legendstack.basebot.api;
 
 import org.legendstack.basebot.BotForgeProperties;
+import org.legendstack.basebot.PersonaRegistry;
 import org.legendstack.basebot.user.BotForgeUserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -21,22 +22,21 @@ public class ConfigController {
     private final BotForgeProperties properties;
     private final BotForgeUserService userService;
     private final int neo4jHttpPort;
-    private final CustomPersonaRepository customPersonaRepository;
+    private final PersonaRegistry personaRegistry;
 
     public ConfigController(BotForgeProperties properties,
             BotForgeUserService userService,
             @Value("${neo4j.http.port:8892}") int neo4jHttpPort,
-            CustomPersonaRepository customPersonaRepository) {
+            PersonaRegistry personaRegistry) {
         this.properties = properties;
         this.userService = userService;
         this.neo4jHttpPort = neo4jHttpPort;
-        this.customPersonaRepository = customPersonaRepository;
+        this.personaRegistry = personaRegistry;
     }
 
     @GetMapping
-    public ResponseEntity<?> getConfig() {
-        var user = properties.chat().persona();
-        var persona = user;
+    public ResponseEntity<Map<String, Object>> getConfig() {
+        var persona = properties.chat().persona();
         var displayName = persona.substring(0, 1).toUpperCase() + persona.substring(1);
         var tagline = properties.chat().tagline();
 
@@ -49,23 +49,11 @@ public class ConfigController {
                     displayName = persona.substring(0, 1).toUpperCase() + persona.substring(1);
                 }
 
-                // Try to find matching preset for tagline
-                boolean found = false;
-                for (PersonaController.PersonaPreset preset : PersonaController.PRESETS) {
-                    if (preset.id().equals(persona)) {
-                        displayName = preset.displayName();
-                        tagline = preset.description();
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found && persona.startsWith("custom_")) {
-                    var customOpt = customPersonaRepository.findById(persona);
-                    if (customOpt.isPresent()) {
-                        displayName = customOpt.get().getDisplayName();
-                        tagline = customOpt.get().getDescription();
-                    }
+                // Resolve persona from registry for display name and tagline
+                var resolved = personaRegistry.resolve(persona);
+                if (resolved.isPresent()) {
+                    displayName = resolved.get().displayName();
+                    tagline = resolved.get().description();
                 }
             }
         } catch (Exception e) {
@@ -85,6 +73,6 @@ public class ConfigController {
                 "logoUrl", logoUrl,
                 "neo4jHttpPort", neo4jHttpPort,
                 "memoryEnabled", properties.memory().enabled(),
-                "availablePersonas", PersonaController.PRESETS));
+                "availablePersonas", PersonaRegistry.PRESETS));
     }
 }

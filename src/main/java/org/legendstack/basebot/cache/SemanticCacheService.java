@@ -49,7 +49,7 @@ public class SemanticCacheService {
     }
 
     private String generateKey(String query, String persona) {
-        // In a real semantic cache, this would be a vector embedding lookup
-        return CACHE_PREFIX + persona + ":" + query.trim().toLowerCase().hashCode();
+        // Use full normalized string as key for correct exact-match caching
+        return CACHE_PREFIX + persona + ":" + query.trim().toLowerCase();
     }
 }

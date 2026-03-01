@@ -12,9 +12,22 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class SubconsciousJanitorService {
+
+    /**
+     * Allowlist of relationship types that the janitor is permitted to create.
+     * Any type returned by the LLM that is not in this set will be rejected,
+     * eliminating the Cypher injection risk of dynamic MERGE statements.
+     */
+    private static final Set<String> ALLOWED_RELATIONSHIP_TYPES = Set.of(
+            "RELATES_TO", "DEPENDS_ON", "IS_PART_OF", "CONTRADICTS",
+            "SIMILAR_TO", "CAUSED_BY", "LEADS_TO", "BELONGS_TO",
+            "ASSOCIATED_WITH", "DERIVED_FROM", "COMPLEMENTS",
+            "LIKES", "DISLIKES", "KNOWS", "IS_INTERESTED_IN",
+            "WORKS_ON", "PREFERS");
     private final Logger logger = LoggerFactory.getLogger(SubconsciousJanitorService.class);
 
     private final AiBuilder aiBuilder;
@@ -97,24 +110,30 @@ public class SubconsciousJanitorService {
 
                 if (relType != null) {
                     relType = relType.trim().toUpperCase();
-                    // Basic sanity check to prevent Cypher injection on the dynamic relationship
-                    // type
-                    if (!relType.equals("NONE") && relType.matches("^[A-Z_]+$")) {
-                        logger.info("🧠 Subconscious Insight: ({}) -[{}]-> ({})", p1Name, relType, p2Name);
-
-                        String cypherMerge = """
-                                    MATCH (p1), (p2)
-                                    WHERE id(p1) = $p1Id AND id(p2) = $p2Id
-                                    MERGE (p1)-[r:%s]->(p2)
-                                    SET r.source = 'subconscious_janitor'
-                                """.formatted(relType);
-
-                        Map<String, Object> params = new HashMap<>();
-                        params.put("p1Id", p1Id);
-                        params.put("p2Id", p2Id);
-
-                        persistenceManager.execute(QuerySpecification.withStatement(cypherMerge).bind(params));
+                    if (relType.equals("NONE")) {
+                        continue;
                     }
+                    if (!ALLOWED_RELATIONSHIP_TYPES.contains(relType)) {
+                        logger.warn("Janitor rejected unknown relationship type '{}' between ({}) and ({})",
+                                relType, p1Name, p2Name);
+                        continue;
+                    }
+
+                    logger.info("\uD83E\uDDE0 Subconscious Insight: ({}) -[{}]-> ({})", p1Name, relType, p2Name);
+
+                    // Safe: relType is guaranteed to be in the allowlist
+                    String cypherMerge = """
+                                MATCH (p1), (p2)
+                                WHERE id(p1) = $p1Id AND id(p2) = $p2Id
+                                MERGE (p1)-[r:%s]->(p2)
+                                SET r.source = 'subconscious_janitor'
+                            """.formatted(relType);
+
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("p1Id", p1Id);
+                    params.put("p2Id", p2Id);
+
+                    persistenceManager.execute(QuerySpecification.withStatement(cypherMerge).bind(params));
                 }
             }
         } catch (Exception e) {

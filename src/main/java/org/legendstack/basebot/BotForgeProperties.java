@@ -50,4 +50,13 @@ public record BotForgeProperties(
         }
     }
 
+    /**
+     * Returns a copy of these properties with the chat options replaced.
+     * Avoids fragile manual reconstruction of all record fields.
+     */
+    public BotForgeProperties withChat(ChatbotOptions newChat) {
+        return new BotForgeProperties(newChat, ingestion, neoRag, memory,
+                botPackages, initialDocuments, stylesheet, mcpToolsDescription);
+    }
+
 }

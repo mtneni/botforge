@@ -1,12 +1,34 @@
 const API_BASE = '';
 
+/**
+ * Read the XSRF-TOKEN cookie set by Spring Security's CookieCsrfTokenRepository.
+ * The token must be sent back as the X-XSRF-TOKEN header on mutating requests.
+ */
+function getCsrfToken(): string | null {
+    const match = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('XSRF-TOKEN='));
+    return match ? decodeURIComponent(match.split('=')[1]) : null;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options?.headers as Record<string, string>),
+    };
+
+    // Attach CSRF token on mutating methods
+    const method = options?.method?.toUpperCase() ?? 'GET';
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        const csrf = getCsrfToken();
+        if (csrf) {
+            headers['X-XSRF-TOKEN'] = csrf;
+        }
+    }
+
     const res = await fetch(`${API_BASE}${path}`, {
         credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-            ...options?.headers,
-        },
+        headers,
         ...options,
     });
 
@@ -35,9 +57,17 @@ export const api = {
     upload: async <T>(path: string, file: File): Promise<T> => {
         const form = new FormData();
         form.append('file', file);
+
+        const headers: Record<string, string> = {};
+        const csrf = getCsrfToken();
+        if (csrf) {
+            headers['X-XSRF-TOKEN'] = csrf;
+        }
+
         const res = await fetch(`${API_BASE}${path}`, {
             method: 'POST',
             credentials: 'include',
+            headers,
             body: form,
         });
         if (!res.ok) {

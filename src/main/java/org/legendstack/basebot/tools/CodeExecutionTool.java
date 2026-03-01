@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 public class CodeExecutionTool {
 
     private static final Logger logger = LoggerFactory.getLogger(CodeExecutionTool.class);
+    private static final int MAX_OUTPUT_BYTES = 10_240; // 10 KB cap
+    private static final int TIMEOUT_SECONDS = 5;
 
     @LlmTool(description = """
             Execute a python script locally in a sandboxed environment.
@@ -24,14 +26,21 @@ public class CodeExecutionTool {
             """)
     public String executePython(String code) {
         logger.info("Executing Python script snippet...");
+        Path tempDir = null;
         Path tempScript = null;
         try {
-            tempScript = Files.createTempFile("BotForge_script_", ".py");
+            // Create an isolated temp working directory so the script cannot see the host
+            // FS
+            tempDir = Files.createTempDirectory("BotForge_sandbox_");
+            tempScript = Files.createTempFile(tempDir, "BotForge_script_", ".py");
             Files.writeString(tempScript, code);
 
-            ProcessBuilder pb = new ProcessBuilder("python", tempScript.toString());
-            // Safe Sandbox: remove all environment variables except PATH (necessary to find
-            // python)
+            // -I = isolated mode: ignores PYTHON* env vars, user-site packages, and
+            // implicit CWD imports
+            ProcessBuilder pb = new ProcessBuilder("python", "-I", tempScript.toString());
+
+            // Minimal environment: only PATH (to locate python) and SystemRoot (required on
+            // Windows)
             String path = pb.environment().get("PATH");
             String systemRoot = pb.environment().get("SystemRoot");
             pb.environment().clear();
@@ -39,20 +48,22 @@ public class CodeExecutionTool {
                 pb.environment().put("PATH", path);
             if (systemRoot != null)
                 pb.environment().put("SystemRoot", systemRoot);
-            // pb.directory(...) // Optional: Restrict working directory to a safe space
 
+            // Restrict working directory to the isolated temp folder
+            pb.directory(tempDir.toFile());
             pb.redirectErrorStream(false);
+
             Process process = pb.start();
 
-            boolean finished = process.waitFor(5, TimeUnit.SECONDS); // Timeout of 5 seconds
+            boolean finished = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             if (!finished) {
                 process.destroyForcibly();
-                return "Execution timed out after 5 seconds.";
+                return "Execution timed out after " + TIMEOUT_SECONDS + " seconds.";
             }
 
-            String stdout = new String(process.getInputStream().readAllBytes());
-            String stderr = new String(process.getErrorStream().readAllBytes());
+            String stdout = readCapped(process.getInputStream());
+            String stderr = readCapped(process.getErrorStream());
 
             return "Exit Code: " + process.exitValue() + "\nStdout:\n" + stdout + "\nStderr:\n" + stderr;
 
@@ -63,12 +74,26 @@ public class CodeExecutionTool {
             }
             return "Internal Error: " + e.getMessage();
         } finally {
-            if (tempScript != null) {
-                try {
-                    Files.deleteIfExists(tempScript);
-                } catch (IOException e) {
-                    logger.warn("Could not delete temporary script file: {}", tempScript);
-                }
+            cleanUp(tempScript);
+            cleanUp(tempDir);
+        }
+    }
+
+    private String readCapped(java.io.InputStream is) throws IOException {
+        byte[] buf = is.readNBytes(MAX_OUTPUT_BYTES);
+        String result = new String(buf);
+        if (buf.length == MAX_OUTPUT_BYTES) {
+            result += "\n... [output truncated at " + MAX_OUTPUT_BYTES + " bytes]";
+        }
+        return result;
+    }
+
+    private void cleanUp(Path path) {
+        if (path != null) {
+            try {
+                Files.deleteIfExists(path);
+            } catch (IOException e) {
+                logger.warn("Could not delete temporary path: {}", path);
             }
         }
     }

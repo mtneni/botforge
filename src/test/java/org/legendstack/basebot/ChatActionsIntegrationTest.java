@@ -14,11 +14,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.BeforeEach;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -40,7 +42,8 @@ public class ChatActionsIntegrationTest {
                 semanticCacheService,
                 chatSessionManager,
                 conversationService,
-                customPersonaRepository);
+                personaRegistry,
+                orchestratorService);
     }
 
     @Mock
@@ -62,50 +65,23 @@ public class ChatActionsIntegrationTest {
     private com.embabel.dice.proposition.PropositionRepository propositionRepository;
 
     @Mock
-    private org.drivine.manager.PersistenceManagerFactory persistenceManagerFactory;
-
-    @Mock
-    private org.drivine.manager.PersistenceManager persistenceManager;
-
-    @Mock
-    private org.drivine.manager.GraphObjectManager graphObjectManager;
-
-    @Mock
-    private org.drivine.manager.GraphObjectManagerFactory graphObjectManagerFactory;
-
-    @Mock
-    private org.springframework.transaction.PlatformTransactionManager platformTransactionManager;
-
-    @Mock
-    private com.embabel.common.ai.model.ModelProvider modelProvider;
-
-    @Mock
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
-    @Mock
-    private com.embabel.common.ai.model.EmbeddingService embeddingService;
-
     @Mock(answer = org.mockito.Answers.RETURNS_DEEP_STUBS)
-    private org.legendstack.basebot.BotForgeProperties botForgeProperties;
+    private BotForgeProperties botForgeProperties;
 
     @Mock
-    private org.legendstack.basebot.api.CustomPersonaRepository customPersonaRepository;
+    private PersonaRegistry personaRegistry;
 
     @Mock
-    private com.embabel.agent.rag.service.NamedEntityDataRepository namedEntityDataRepository;
-
-    @Mock
-    private org.legendstack.basebot.rag.DocumentService documentService;
-
-    @Mock
-    private com.embabel.agent.rag.store.ChunkingContentElementRepository chunkingContentElementRepository;
+    private OrchestratorService orchestratorService;
 
     @Test
     public void testSendMessageSuccessfullyResponds() {
         BotForgeUser user = new BotForgeUser("user123", "Test User", "testuser");
 
         Conversation conversation = mock(Conversation.class);
-        List<com.embabel.chat.Message> messages = new java.util.ArrayList<>();
+        List<com.embabel.chat.Message> messages = new ArrayList<>();
         messages.add(new UserMessage("Hello, BotForge!"));
         when(conversation.getMessages()).thenReturn(messages);
         when(conversation.last(anyInt())).thenReturn(conversation);

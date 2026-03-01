@@ -3,8 +3,9 @@ package org.legendstack.basebot.api;
 import com.embabel.chat.AssistantMessage;
 import com.embabel.chat.ChatSession;
 import com.embabel.chat.Chatbot;
-import com.embabel.chat.UserMessage;
+import com.embabel.chat.Conversation;
 import com.embabel.chat.Message;
+import com.embabel.chat.UserMessage;
 import org.legendstack.basebot.conversation.ConversationService;
 import org.legendstack.basebot.user.BotForgeUser;
 import org.slf4j.Logger;
@@ -17,8 +18,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages chat sessions per HTTP session, replacing VaadinSession-based session
- * storage.
+ * Manages chat sessions per conversation, with O(1) reverse lookup.
  */
 @Component
 public class ChatSessionManager {
@@ -29,6 +29,7 @@ public class ChatSessionManager {
     private final ConversationService conversationService;
     private final SseEmitterRegistry sseRegistry;
     private final Map<String, SessionData> sessions = new ConcurrentHashMap<>();
+    private final Map<Conversation, String> conversationToId = new ConcurrentHashMap<>();
 
     public ChatSessionManager(Chatbot chatbot, ConversationService conversationService,
             SseEmitterRegistry sseRegistry) {
@@ -41,9 +42,6 @@ public class ChatSessionManager {
         private final ChatSession chatSession;
         private final BlockingQueue<Message> responseQueue;
         private final SseOutputChannel outputChannel;
-        private volatile String personaOverride;
-        private volatile String objectiveOverride;
-        private volatile String behaviourOverride;
 
         public SessionData(ChatSession chatSession, BlockingQueue<Message> responseQueue,
                 SseOutputChannel outputChannel) {
@@ -62,30 +60,6 @@ public class ChatSessionManager {
 
         public SseOutputChannel outputChannel() {
             return outputChannel;
-        }
-
-        public String getPersonaOverride() {
-            return personaOverride;
-        }
-
-        public void setPersonaOverride(String p) {
-            this.personaOverride = p;
-        }
-
-        public String getObjectiveOverride() {
-            return objectiveOverride;
-        }
-
-        public void setObjectiveOverride(String o) {
-            this.objectiveOverride = o;
-        }
-
-        public String getBehaviourOverride() {
-            return behaviourOverride;
-        }
-
-        public void setBehaviourOverride(String b) {
-            this.behaviourOverride = b;
         }
     }
 
@@ -111,17 +85,19 @@ public class ChatSessionManager {
                 }
             });
 
+            // Register reverse lookup
+            conversationToId.put(chatSession.getConversation(), conversationId);
+
             logger.info("Initialized chat session for user {} (Conversation: {})", user.getUsername(), id);
             return new SessionData(chatSession, responseQueue, outputChannel);
         });
     }
 
-    public String findIdByConversation(com.embabel.chat.Conversation conversation) {
-        return sessions.entrySet().stream()
-                .filter(e -> e.getValue().chatSession().getConversation().equals(conversation))
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElse(null);
+    /**
+     * O(1) reverse lookup from Conversation object to conversation ID.
+     */
+    public String findIdByConversation(Conversation conversation) {
+        return conversationToId.get(conversation);
     }
 
     public SessionData get(String httpSessionId) {
@@ -129,7 +105,10 @@ public class ChatSessionManager {
     }
 
     public void remove(String conversationId) {
-        sessions.remove(conversationId);
+        var removed = sessions.remove(conversationId);
+        if (removed != null) {
+            conversationToId.remove(removed.chatSession().getConversation());
+        }
         logger.info("Removed chat session for conversation: {}", conversationId);
     }
 }

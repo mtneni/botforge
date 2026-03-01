@@ -3,7 +3,6 @@ package org.legendstack.basebot.conversation;
 import com.embabel.chat.Message;
 import com.embabel.chat.UserMessage;
 import org.legendstack.basebot.user.BotForgeUser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,14 +17,11 @@ public class ConversationService {
     private static final Logger logger = LoggerFactory.getLogger(ConversationService.class);
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository messageRepository;
-    private final ObjectMapper objectMapper;
 
     public ConversationService(ConversationRepository conversationRepository,
-            ChatMessageRepository messageRepository,
-            ObjectMapper objectMapper) {
+            ChatMessageRepository messageRepository) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional

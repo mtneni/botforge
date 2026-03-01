@@ -3,12 +3,10 @@ package org.legendstack.basebot.api;
 import com.embabel.chat.UserMessage;
 import org.legendstack.basebot.BotForgeProperties;
 import org.legendstack.basebot.conversation.ConversationService;
-import org.legendstack.basebot.event.ConversationAnalysisRequestEvent;
 import org.legendstack.basebot.user.BotForgeUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,20 +29,17 @@ public class ChatRestController {
     private final ChatSessionManager sessionManager;
     private final BotForgeUserService userService;
     private final BotForgeProperties properties;
-    private final ApplicationEventPublisher eventPublisher;
     private final ConversationService conversationService;
     private final SseEmitterRegistry sseRegistry;
 
     public ChatRestController(ChatSessionManager sessionManager,
             BotForgeUserService userService,
             BotForgeProperties properties,
-            ApplicationEventPublisher eventPublisher,
             ConversationService conversationService,
             SseEmitterRegistry sseRegistry) {
         this.sessionManager = sessionManager;
         this.userService = userService;
         this.properties = properties;
-        this.eventPublisher = eventPublisher;
         this.conversationService = conversationService;
         this.sseRegistry = sseRegistry;
     }
@@ -88,7 +83,7 @@ public class ChatRestController {
     }
 
     @PostMapping("/message/{conversationId}")
-    public ResponseEntity<?> sendMessage(@PathVariable String conversationId,
+    public ResponseEntity<Map<String, String>> sendMessage(@PathVariable String conversationId,
             @RequestBody ChatMessageRequest request) {
         var text = request.message();
         if (text == null || text.trim().isEmpty()) {
@@ -109,17 +104,14 @@ public class ChatRestController {
 
                 sessionData.chatSession().onUserMessage(userMessage);
 
-                // Message persistence is now handled seamlessly inside ChatActions downstream
-                // and the output is pushed via SSE, so we don't need to block the HTTP
-                // controller.
-
-                // Trigger memory extraction if enabled
-                if (properties.memory().enabled()) {
-                    eventPublisher.publishEvent(new ConversationAnalysisRequestEvent(
-                            this, user, sessionData.chatSession().getConversation()));
-                }
+                // Memory extraction is handled inside ChatActions.respond() — no
+                // duplicate event publishing here.
             } catch (Exception e) {
                 logger.error("Error processing chat message", e);
+                // Notify client of the failure via SSE (#19)
+                sessionData.outputChannel().sendError(e.getMessage() != null
+                        ? e.getMessage()
+                        : "An unexpected error occurred");
             }
         });
 
@@ -127,7 +119,7 @@ public class ChatRestController {
     }
 
     @GetMapping("/history/{conversationId}")
-    public ResponseEntity<?> getHistory(@PathVariable String conversationId) {
+    public ResponseEntity<Map<String, Object>> getHistory(@PathVariable String conversationId) {
         return conversationService.getConversation(conversationId)
                 .map(conv -> {
                     var messages = new ArrayList<Map<String, String>>();
@@ -138,7 +130,7 @@ public class ChatRestController {
                                 "content", msg.getContent(),
                                 "timestamp", String.valueOf(msg.getTimestamp().toEpochMilli())));
                     }
-                    return ResponseEntity.ok(Map.of("messages", messages, "title", conv.getTitle()));
+                    return ResponseEntity.ok(Map.<String, Object>of("messages", messages, "title", conv.getTitle()));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -147,7 +139,7 @@ public class ChatRestController {
      * Get all conversations for the authenticated user.
      */
     @GetMapping("/list")
-    public ResponseEntity<?> listConversations() {
+    public ResponseEntity<Map<String, Object>> listConversations() {
         var user = userService.getAuthenticatedUser();
         var chats = conversationService.getUserConversations(user.getId());
         return ResponseEntity.ok(Map.of("conversations", chats));
@@ -157,7 +149,8 @@ public class ChatRestController {
      * Create a new conversation.
      */
     @PostMapping("/new")
-    public ResponseEntity<?> createConversation(@RequestBody Map<String, String> body) {
+    public ResponseEntity<org.legendstack.basebot.conversation.Conversation> createConversation(
+            @RequestBody Map<String, String> body) {
         var user = userService.getAuthenticatedUser();
         String title = body.getOrDefault("title", "New Conversation");
         String defaultPersona = user.getPersonaOverride() != null ? user.getPersonaOverride()
@@ -171,13 +164,13 @@ public class ChatRestController {
      * Rename the current chat session.
      */
     @PutMapping("/{conversationId}/title")
-    public ResponseEntity<?> renameConversation(@PathVariable String conversationId,
+    public ResponseEntity<Map<String, String>> renameConversation(@PathVariable String conversationId,
             @RequestBody Map<String, String> body) {
         var user = userService.getAuthenticatedUser();
         return conversationService.getConversation(conversationId)
                 .map(conv -> {
                     if (!conv.getUserId().equals(user.getId())) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).<Map<String, String>>build();
                     }
                     String newTitle = body.getOrDefault("title", "New Conversation");
                     conversationService.renameConversation(conversationId, newTitle);
@@ -190,18 +183,18 @@ public class ChatRestController {
      * Clear the current chat session.
      */
     @DeleteMapping("/session")
-    public ResponseEntity<?> clearSession(HttpServletRequest request) {
+    public ResponseEntity<Map<String, String>> clearSession(HttpServletRequest request) {
         sessionManager.remove(request.getSession().getId());
         return ResponseEntity.ok(Map.of("status", "cleared"));
     }
 
     @DeleteMapping("/{conversationId}")
-    public ResponseEntity<?> deleteConversation(@PathVariable String conversationId) {
+    public ResponseEntity<Map<String, String>> deleteConversation(@PathVariable String conversationId) {
         var user = userService.getAuthenticatedUser();
         return conversationService.getConversation(conversationId)
                 .map(conv -> {
                     if (!conv.getUserId().equals(user.getId())) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).<Map<String, String>>build();
                     }
                     conversationService.deleteConversation(conversationId);
                     sessionManager.remove(conversationId);

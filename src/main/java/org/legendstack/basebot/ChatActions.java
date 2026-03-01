@@ -1,6 +1,5 @@
 package org.legendstack.basebot;
 
-import org.legendstack.basebot.api.PersonaController;
 import org.legendstack.basebot.cache.SemanticCacheService;
 import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.EmbabelComponent;
@@ -26,14 +25,14 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.legendstack.basebot.api.ChatSessionManager;
 import org.legendstack.basebot.conversation.ConversationService;
-import org.legendstack.basebot.api.CustomPersonaRepository;
 
 /**
  * The platform can use any action to respond to user messages.
  * Picks up references and tools configured as Spring beans.
- * Thus extensibility works via profile--simply add beans
+ * Thus extensibility works via profile — simply add beans
  * under com.embabel.bot
  */
 @EmbabelComponent
@@ -51,7 +50,8 @@ public class ChatActions {
     private final SemanticCacheService semanticCacheService;
     private final ChatSessionManager chatSessionManager;
     private final ConversationService conversationService;
-    private final CustomPersonaRepository customPersonaRepository;
+    private final PersonaRegistry personaRegistry;
+    private final OrchestratorService orchestratorService;
 
     public ChatActions(
             SearchOperations searchOperations,
@@ -64,7 +64,8 @@ public class ChatActions {
             SemanticCacheService semanticCacheService,
             ChatSessionManager chatSessionManager,
             ConversationService conversationService,
-            CustomPersonaRepository customPersonaRepository) {
+            PersonaRegistry personaRegistry,
+            OrchestratorService orchestratorService) {
         this.searchOperations = searchOperations;
         this.globalReferences = globalReferences;
         this.globalTools = globalTools;
@@ -75,12 +76,12 @@ public class ChatActions {
         this.semanticCacheService = semanticCacheService;
         this.chatSessionManager = chatSessionManager;
         this.conversationService = conversationService;
-        this.customPersonaRepository = customPersonaRepository;
+        this.personaRegistry = personaRegistry;
+        this.orchestratorService = orchestratorService;
 
         logger.info("ChatActions initialized. Global references: [{}], Global tools: [{}]",
-                globalReferences.stream().map(Named::getName).collect(java.util.stream.Collectors.joining(", ")),
-                globalTools.stream().map(t -> t.getDefinition().getName())
-                        .collect(java.util.stream.Collectors.joining(", ")));
+                globalReferences.stream().map(Named::getName).collect(Collectors.joining(", ")),
+                globalTools.stream().map(t -> t.getDefinition().getName()).collect(Collectors.joining(", ")));
     }
 
     /**
@@ -92,7 +93,7 @@ public class ChatActions {
         if (forUser instanceof BotForgeUser su) {
             return su;
         } else {
-            logger.warn("bindUser: forUser is not an BotForgeUser: {}", forUser);
+            logger.warn("bindUser: forUser is not a BotForgeUser: {}", forUser);
             return null;
         }
     }
@@ -104,7 +105,7 @@ public class ChatActions {
             ActionContext context) {
 
         String conversationId = chatSessionManager.findIdByConversation(conversation);
-        var effectiveProperties = buildEffectiveProperties(user, conversationId);
+        var effectiveProperties = buildEffectiveProperties(conversationId);
 
         var recentContextStr = new WindowingConversationFormatter(
                 SimpleMessageFormatter.INSTANCE).format(conversation.last(properties.chat().messagesToEmbed()));
@@ -112,113 +113,17 @@ public class ChatActions {
         var messages = conversation.getMessages();
         var userPrompt = messages.get(messages.size() - 1).getContent();
 
-        StringBuilder workingMemory = new StringBuilder();
-
+        // --- Orchestrator delegation ---
+        String workingMemory = "";
         if ("orchestrator".equals(effectiveProperties.chat().persona())) {
             logger.info("Orchestrator active. Deciding sub-agent plan...");
-            try {
-                java.util.List<PersonaController.PersonaPreset> allPersonas = new java.util.ArrayList<>(
-                        PersonaController.PRESETS);
-                customPersonaRepository.findByUserId(user.getId())
-                        .forEach(c -> allPersonas.add(new PersonaController.PersonaPreset(c.getId(), c.getDisplayName(),
-                                c.getObjective(), c.getBehaviour(), c.getDescription(), c.getIcon())));
-
-                String personaList = allPersonas.stream()
-                        .filter(p -> !"orchestrator".equals(p.id()))
-                        .map(p -> "- '" + p.id() + "': " + p.description())
-                        .collect(java.util.stream.Collectors.joining("\n"));
-
-                String prompt = """
-                        Analyze the user's complex request and develop a sequential execution plan.
-                        If the task is simple, return a plan with exactly ONE step assigned to the best persona.
-                        If the task is complex, break it into multiple steps assigned to specialized personas.
-                        Available personas:
-                        %s
-
-                        Recent Context:
-                        %s
-
-                        User Message:
-                        %s
-                        """.formatted(personaList, recentContextStr, userPrompt);
-
-                OrchestrationPlan plan = context.ai()
-                        .withLlm(effectiveProperties.chat().llm())
-                        .createObject(prompt, OrchestrationPlan.class);
-
-                if (plan != null && plan.steps() != null && !plan.steps().isEmpty()) {
-                    List<SubTask> steps = plan.steps();
-                    logger.info("Orchestrator generated a {}-step plan.", steps.size());
-
-                    if (steps.size() > 1) {
-                        // MULTI-STEP EXECUTION
-                        for (int i = 0; i < steps.size() - 1; i++) {
-                            SubTask step = steps.get(i);
-                            String stepPersona = step.personaId();
-                            if (stepPersona == null || stepPersona.equalsIgnoreCase("orchestrator"))
-                                stepPersona = "assistant";
-
-                            logger.info("Executing SubTask {} of {}: [{}] -> {}", i + 1, steps.size(), stepPersona,
-                                    step.objective());
-
-                            var stepProps = overwritePersona(properties, stepPersona);
-                            String stepObjective = "Sub-task Objective: " + step.objective()
-                                    + "\n\nOriginal User Request: " + userPrompt;
-                            if (workingMemory.length() > 0) {
-                                stepObjective += "\n\nContext from previous steps:\n" + workingMemory.toString();
-                            }
-
-                            var subTools = new LinkedList<>(globalTools);
-                            var subReferences = new LinkedList<>(globalReferences);
-                            subReferences.add(user.personalDocs(searchOperations));
-                            if (properties.memory().enabled()) {
-                                var memory = Memory.forContext(user.currentContext())
-                                        .withRepository(propositionRepository)
-                                        .withProjector(memoryProjector)
-                                        .withEagerSearchAbout(stepObjective, properties.chat().memoryEagerLimit());
-                                subReferences.add(memory);
-                                subTools.add(memory);
-                            }
-
-                            String stepPrompt = """
-                                    You are a specialized agent executing a sub-task.
-
-                                    %s
-
-                                    Formulate a complete, detailed response to satisfy this objective. Ensure your output provides everything the final synthesizer needs.
-                                    """
-                                    .formatted(stepObjective);
-
-                            SubTaskResult subMsg = context.ai()
-                                    .withLlm(stepProps.chat().llm())
-                                    .withTools(subTools)
-                                    .withReferences(subReferences)
-                                    .createObject(stepPrompt, SubTaskResult.class);
-
-                            workingMemory.append("=== Output from ").append(stepPersona).append(" ===\n");
-                            workingMemory.append(subMsg.output()).append("\n\n");
-                        }
-                    }
-
-                    SubTask finalStep = steps.get(steps.size() - 1);
-                    String finalPersona = finalStep.personaId();
-                    if (finalPersona == null || finalPersona.equalsIgnoreCase("orchestrator"))
-                        finalPersona = "assistant";
-
-                    logger.info("Orchestrator selected final synthesis persona: {}", finalPersona);
-                    effectiveProperties = overwritePersona(effectiveProperties, finalPersona);
-                } else {
-                    effectiveProperties = overwritePersona(effectiveProperties, "assistant");
-                }
-            } catch (Exception e) {
-                logger.error("Orchestrator failed to plan, falling back to assistant", e);
-                effectiveProperties = overwritePersona(effectiveProperties, "assistant");
-            }
+            var result = orchestratorService.execute(effectiveProperties, user, recentContextStr, userPrompt, context);
+            workingMemory = result.workingMemory();
+            effectiveProperties = resolvePersonaProperties(effectiveProperties, result.finalPersonaId());
         }
 
-        // Semantic Cache Check uses actual recent context state
-        java.util.Optional<String> cached = semanticCacheService.get(recentContextStr,
-                effectiveProperties.chat().persona());
+        // --- Semantic cache check ---
+        var cached = semanticCacheService.get(recentContextStr, effectiveProperties.chat().persona());
         if (cached.isPresent()) {
             logger.info("Serving cached response for: {}", userPrompt);
             var msg = conversation.addMessage(new com.embabel.chat.AssistantMessage(cached.get()));
@@ -229,26 +134,20 @@ public class ChatActions {
             return;
         }
 
-        var recentContext = recentContextStr;
-
+        // --- Assemble RAG references and tools ---
         var tools = new LinkedList<>(globalTools);
-
         var references = new LinkedList<>(globalReferences);
         references.add(user.personalDocs(searchOperations));
         if (properties.memory().enabled()) {
             var memory = Memory.forContext(user.currentContext())
                     .withRepository(propositionRepository)
                     .withProjector(memoryProjector)
-                    .withEagerSearchAbout(recentContext, properties.chat().memoryEagerLimit());
+                    .withEagerSearchAbout(recentContextStr, properties.chat().memoryEagerLimit());
             references.add(memory);
-            // Also expose memory as a callable tool so the LLM can actively search
-            // with its own keywords (eager search alone misses open-ended questions)
             tools.add(memory);
         }
 
-        // Build effective properties — apply persona overrides if set
-        // (already fetched at the top of respond)
-
+        // --- LLM call ---
         var assistantMessage = context.ai()
                 .withLlm(effectiveProperties.chat().llm())
                 .withId("chat_response")
@@ -258,7 +157,7 @@ public class ChatActions {
                 .respondWithSystemPrompt(conversation, Map.of(
                         "properties", effectiveProperties,
                         "user", user,
-                        "working_memory", workingMemory.toString()));
+                        "working_memory", workingMemory));
 
         var msg = conversation.addMessage(assistantMessage);
 
@@ -268,7 +167,7 @@ public class ChatActions {
 
         context.sendMessage(msg);
 
-        // Store in cache with semantic context
+        // Store in cache
         semanticCacheService.put(recentContextStr, effectiveProperties.chat().persona(),
                 assistantMessage.getContent());
 
@@ -278,94 +177,36 @@ public class ChatActions {
     }
 
     /**
-     * Build effective properties by applying persona overrides from the user.
-     * Falls back to application.yml defaults if no overrides are set.
+     * Build effective properties by resolving the persona from the conversation
+     * entity.
      */
-    private BotForgeProperties buildEffectiveProperties(BotForgeUser user, String conversationId) {
-        var chat = properties.chat();
-        String persona = chat.persona();
-        String objective = chat.objective();
-        String behaviour = chat.behaviour();
-
-        if (conversationId != null) {
-            var dbConvOpt = conversationService.getConversation(conversationId);
-            if (dbConvOpt.isPresent()) {
-                String convPersonaId = dbConvOpt.get().getPersona();
-                var presetOpt = PersonaController.PRESETS.stream()
-                        .filter(p -> p.id().equals(convPersonaId))
-                        .findFirst();
-                if (presetOpt.isPresent()) {
-                    persona = presetOpt.get().id();
-                    objective = presetOpt.get().objective();
-                    behaviour = presetOpt.get().behaviour();
-                } else {
-                    var customOpt = customPersonaRepository.findById(convPersonaId);
-                    if (customOpt.isPresent()) {
-                        persona = customOpt.get().getId();
-                        objective = customOpt.get().getObjective();
-                        behaviour = customOpt.get().getBehaviour();
-                    }
-                }
-            }
+    private BotForgeProperties buildEffectiveProperties(String conversationId) {
+        if (conversationId == null) {
+            return properties;
+        }
+        var dbConvOpt = conversationService.getConversation(conversationId);
+        if (dbConvOpt.isEmpty()) {
+            return properties;
         }
 
-        if (persona.equals(chat.persona()) && objective.equals(chat.objective())
-                && behaviour.equals(chat.behaviour())) {
-            return properties; // No overrides — use original
-        }
-
-        var overriddenChat = new ChatbotOptions(
-                chat.llm(), chat.messagesToEmbed(), objective, behaviour, persona,
-                chat.maxWords(), chat.memoryEagerLimit(), chat.warmth(), chat.memoryVerbosity(),
-                chat.showPrompts(), chat.showResponses(), chat.tagline());
-
-        return new BotForgeProperties(overriddenChat, properties.ingestion(),
-                properties.neoRag(), properties.memory(), properties.botPackages(),
-                properties.initialDocuments(), properties.stylesheet(), properties.mcpToolsDescription());
+        String convPersonaId = dbConvOpt.get().getPersona();
+        return resolvePersonaProperties(properties, convPersonaId);
     }
 
-    private BotForgeProperties overwritePersona(BotForgeProperties baseProps, String targetPersonaId) {
-        String newObjective = baseProps.chat().objective();
-        String newBehaviour = baseProps.chat().behaviour();
-
-        var presetOpt = PersonaController.PRESETS.stream()
-                .filter(p -> p.id().equals(targetPersonaId))
-                .findFirst();
-        if (presetOpt.isPresent()) {
-            newObjective = presetOpt.get().objective();
-            newBehaviour = presetOpt.get().behaviour();
-        } else {
-            var customOpt = customPersonaRepository.findById(targetPersonaId);
-            if (customOpt.isPresent()) {
-                newObjective = customOpt.get().getObjective();
-                newBehaviour = customOpt.get().getBehaviour();
-            }
+    /**
+     * Create a copy of properties with persona-specific overrides applied.
+     */
+    private BotForgeProperties resolvePersonaProperties(BotForgeProperties baseProps, String personaId) {
+        var resolved = personaRegistry.resolve(personaId);
+        if (resolved.isEmpty()) {
+            return baseProps;
         }
-
+        var p = resolved.get();
         var newChat = new ChatbotOptions(
-                baseProps.chat().llm(), baseProps.chat().messagesToEmbed(), newObjective, newBehaviour, targetPersonaId,
+                baseProps.chat().llm(), baseProps.chat().messagesToEmbed(), p.objective(), p.behaviour(), personaId,
                 baseProps.chat().maxWords(), baseProps.chat().memoryEagerLimit(), baseProps.chat().warmth(),
                 baseProps.chat().memoryVerbosity(),
                 baseProps.chat().showPrompts(), baseProps.chat().showResponses(), baseProps.chat().tagline());
-
-        return new BotForgeProperties(newChat, baseProps.ingestion(),
-                baseProps.neoRag(), baseProps.memory(), baseProps.botPackages(),
-                baseProps.initialDocuments(), baseProps.stylesheet(), baseProps.mcpToolsDescription());
-    }
-
-    @com.fasterxml.jackson.annotation.JsonClassDescription("An execution plan broken down into specialized sub-tasks to be performed sequentially by different personas.")
-    public record OrchestrationPlan(
-            @com.fasterxml.jackson.annotation.JsonPropertyDescription("The sequence of sub-tasks to execute. If the user request is simple, just return a single sub-task.") List<SubTask> steps) {
-    }
-
-    @com.fasterxml.jackson.annotation.JsonClassDescription("A single sub-task in the execution plan")
-    public record SubTask(
-            @com.fasterxml.jackson.annotation.JsonPropertyDescription("The ID of the persona best suited for this sub-task. Use 'assistant' if unsure.") String personaId,
-            @com.fasterxml.jackson.annotation.JsonPropertyDescription("The specific objective of this sub-task.") String objective) {
-    }
-
-    @com.fasterxml.jackson.annotation.JsonClassDescription("The detailed output of the sub-task execution")
-    public record SubTaskResult(
-            @com.fasterxml.jackson.annotation.JsonPropertyDescription("Your full, detailed response satisfying the sub-task objective") String output) {
+        return baseProps.withChat(newChat);
     }
 }
