@@ -1,6 +1,7 @@
 package org.legendstack.basebot;
 
 import org.legendstack.basebot.cache.SemanticCacheService;
+import org.legendstack.basebot.observability.BotForgeMetrics;
 import com.embabel.agent.api.common.ActionContext;
 import com.embabel.chat.AssistantMessage;
 import com.embabel.chat.UserMessage;
@@ -43,8 +44,12 @@ public class ChatActionsIntegrationTest {
                 chatSessionManager,
                 conversationService,
                 personaRegistry,
-                orchestratorService);
+                orchestratorService,
+                botForgeMetrics);
     }
+
+    @Mock
+    private BotForgeMetrics botForgeMetrics;
 
     @Mock
     private ConversationService conversationService;

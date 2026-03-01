@@ -51,7 +51,8 @@ class SecurityConfiguration {
                                 .addFilterAfter(new CsrfCookieFilter(),
                                                 org.springframework.security.web.csrf.CsrfFilter.class)
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers("/api/auth/login", "/api/auth/users", "/api/config")
+                                                .requestMatchers("/api/auth/login", "/api/auth/register",
+                                                                "/api/auth/users", "/api/config")
                                                 .permitAll()
                                                 .requestMatchers("/images/**", "/assets/**").permitAll()
                                                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html",

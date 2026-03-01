@@ -2,16 +2,21 @@ package org.legendstack.basebot.api;
 
 import org.legendstack.basebot.user.DummyBotForgeUserService;
 import org.legendstack.basebot.user.BotForgeUser;
+import org.legendstack.basebot.user.BotForgeUserEntity;
+import org.legendstack.basebot.user.BotForgeUserRepository;
 import org.legendstack.basebot.user.BotForgeUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Authentication REST endpoints for the SPA frontend.
@@ -21,12 +26,20 @@ import java.util.Map;
 public class AuthController {
 
     private final BotForgeUserService userService;
+    private final BotForgeUserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(BotForgeUserService userService) {
+    public AuthController(BotForgeUserService userService,
+            BotForgeUserRepository userRepository) {
         this.userService = userService;
+        this.userRepository = userRepository;
+        this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
     public record LoginRequest(String username, String password) {
+    }
+
+    public record RegisterRequest(String username, String displayName, String password) {
     }
 
     public record UserResponse(String id, String displayName, String username, String currentContext) {
@@ -36,8 +49,16 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         try {
             var userDetails = userService.loadUserByUsername(request.username());
-            // For DummyBotForgeUserService, password == username
-            if (!request.password().equals(request.username())) {
+
+            // Verify password: BCrypt for JPA users, username==password for dummy users
+            boolean passwordValid;
+            if (userService instanceof DummyBotForgeUserService) {
+                passwordValid = request.password().equals(request.username());
+            } else {
+                passwordValid = passwordEncoder.matches(request.password(), userDetails.getPassword());
+            }
+
+            if (!passwordValid) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", "Invalid credentials"));
             }
@@ -46,7 +67,6 @@ public class AuthController {
                     userDetails, null, userDetails.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // Create session
             var session = httpRequest.getSession(true);
             session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
@@ -56,6 +76,37 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid credentials"));
         }
+    }
+
+    /**
+     * Register a new user account (production mode with JPA persistence).
+     */
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        if (request.username() == null || request.username().isBlank()
+                || request.password() == null || request.password().length() < 8) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Username required, password must be at least 8 characters"));
+        }
+
+        if (userRepository.findByUsername(request.username()).isPresent()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Username already taken"));
+        }
+
+        String id = UUID.randomUUID().toString();
+        String displayName = request.displayName() != null && !request.displayName().isBlank()
+                ? request.displayName()
+                : request.username();
+        String hash = passwordEncoder.encode(request.password());
+
+        var entity = new BotForgeUserEntity(id, request.username(), displayName, hash);
+        userRepository.save(entity);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "User registered successfully",
+                "userId", id,
+                "username", request.username()));
     }
 
     @PostMapping("/logout")

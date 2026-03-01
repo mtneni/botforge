@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- ================================================================
+         Default (dev) logging: human-readable console output.
+         Production profile: structured JSON for ELK/CloudWatch/Datadog.
+         ================================================================ -->
+
+    <!-- Dev profile: plain text console -->
+    <springProfile name="dev">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+        </root>
+
+        <!-- Reduce noise from framework loggers -->
+        <logger name="org.springframework" level="WARN" />
+        <logger name="org.hibernate" level="WARN" />
+        <logger name="org.drivine" level="WARN" />
+        <logger name="io.netty" level="WARN" />
+
+        <!-- BotForge application logging -->
+        <logger name="org.legendstack.basebot" level="DEBUG" />
+    </springProfile>
+
+    <!-- Production profile: structured JSON -->
+    <springProfile name="!dev">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="ch.qos.logback.classic.encoder.JsonEncoder" />
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE" />
+        </root>
+
+        <!-- Reduce noise from framework loggers -->
+        <logger name="org.springframework" level="WARN" />
+        <logger name="org.hibernate" level="WARN" />
+        <logger name="org.drivine" level="WARN" />
+        <logger name="io.netty" level="WARN" />
+
+        <!-- BotForge application logging -->
+        <logger name="org.legendstack.basebot" level="INFO" />
+    </springProfile>
+
+</configuration>

@@ -1,6 +1,7 @@
 package org.legendstack.basebot;
 
 import org.legendstack.basebot.cache.SemanticCacheService;
+import org.legendstack.basebot.observability.BotForgeMetrics;
 import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.EmbabelComponent;
 import com.embabel.agent.api.common.ActionContext;
@@ -52,6 +53,7 @@ public class ChatActions {
     private final ConversationService conversationService;
     private final PersonaRegistry personaRegistry;
     private final OrchestratorService orchestratorService;
+    private final BotForgeMetrics metrics;
 
     public ChatActions(
             SearchOperations searchOperations,
@@ -65,7 +67,8 @@ public class ChatActions {
             ChatSessionManager chatSessionManager,
             ConversationService conversationService,
             PersonaRegistry personaRegistry,
-            OrchestratorService orchestratorService) {
+            OrchestratorService orchestratorService,
+            BotForgeMetrics metrics) {
         this.searchOperations = searchOperations;
         this.globalReferences = globalReferences;
         this.globalTools = globalTools;
@@ -78,6 +81,7 @@ public class ChatActions {
         this.conversationService = conversationService;
         this.personaRegistry = personaRegistry;
         this.orchestratorService = orchestratorService;
+        this.metrics = metrics;
 
         logger.info("ChatActions initialized. Global references: [{}], Global tools: [{}]",
                 globalReferences.stream().map(Named::getName).collect(Collectors.joining(", ")),
@@ -104,6 +108,9 @@ public class ChatActions {
             BotForgeUser user,
             ActionContext context) {
 
+        var chatTimerSample = metrics.startChatTimer();
+        metrics.recordChatMessage();
+
         String conversationId = chatSessionManager.findIdByConversation(conversation);
         var effectiveProperties = buildEffectiveProperties(conversationId);
 
@@ -125,12 +132,15 @@ public class ChatActions {
         // --- Semantic cache check ---
         var cached = semanticCacheService.get(recentContextStr, effectiveProperties.chat().persona());
         if (cached.isPresent()) {
+            metrics.recordCacheHit();
             logger.info("Serving cached response for: {}", userPrompt);
             var msg = conversation.addMessage(new com.embabel.chat.AssistantMessage(cached.get()));
             if (conversationId != null) {
                 conversationService.saveMessage(conversationId, msg);
             }
             context.sendMessage(msg);
+            metrics.recordChatResponse();
+            metrics.stopChatTimer(chatTimerSample);
             return;
         }
 
@@ -166,6 +176,8 @@ public class ChatActions {
         }
 
         context.sendMessage(msg);
+        metrics.recordChatResponse();
+        metrics.stopChatTimer(chatTimerSample);
 
         // Store in cache
         semanticCacheService.put(recentContextStr, effectiveProperties.chat().persona(),
