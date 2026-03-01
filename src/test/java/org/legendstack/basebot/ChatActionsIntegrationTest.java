@@ -35,25 +35,20 @@ public class ChatActionsIntegrationTest {
     @BeforeEach
     public void setup() {
         chatActions = new ChatActions(
-                searchOperations,
-                new ArrayList<>(),
-                new ArrayList<>(),
                 botForgeProperties,
-                memoryProjector,
-                propositionRepository,
-                eventPublisher,
-                semanticCacheService,
                 chatSessionManager,
                 conversationService,
                 personaRegistry,
                 orchestratorService,
                 botForgeMetrics,
-                auditService,
-                tokenBudgetService);
+                responsePipeline);
     }
 
     @Mock
     private BotForgeMetrics botForgeMetrics;
+
+    @Mock
+    private ResponsePipeline responsePipeline;
 
     @Mock
     private AuditService auditService;
@@ -121,8 +116,8 @@ public class ChatActionsIntegrationTest {
             chatActions.respond(conversation, user, mockContext);
         });
 
-        verify(conversationService, times(1)).saveMessage(eq("conv123"), any(AssistantMessage.class));
-        verify(mockContext, times(1)).sendMessage(any(AssistantMessage.class));
-        verify(conversation, times(1)).addMessage(any(AssistantMessage.class));
+        verify(responsePipeline, times(1)).execute(
+                any(), eq(user), eq(mockContext), eq(conversation),
+                eq("conv123"), eq("Hello, BotForge!"), anyString(), anyString(), any());
     }
 }

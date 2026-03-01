@@ -35,27 +35,26 @@ public class CodeExecutionTool {
             tempScript = Files.createTempFile(tempDir, "BotForge_script_", ".py");
             Files.writeString(tempScript, code);
 
-            // -I = isolated mode: ignores PYTHON* env vars, user-site packages, and
-            // implicit CWD imports
-            ProcessBuilder pb = new ProcessBuilder("python", "-I", tempScript.toString());
+            // Execute inside a sandboxed Docker container
+            // --rm: remove container when done
+            // --network none: disable internet access
+            // -m 100m: limit memory
+            // -v: mount the script directory
+            ProcessBuilder pb = new ProcessBuilder(
+                    "docker", "run", "--rm",
+                    "--network", "none",
+                    "-m", "100m",
+                    "--cpus", "0.5",
+                    "-v", tempDir.toAbsolutePath() + ":/app",
+                    "-w", "/app",
+                    "python:3.11-slim",
+                    "python", "-I", tempScript.getFileName().toString());
 
-            // Minimal environment: only PATH (to locate python) and SystemRoot (required on
-            // Windows)
-            String path = pb.environment().get("PATH");
-            String systemRoot = pb.environment().get("SystemRoot");
-            pb.environment().clear();
-            if (path != null)
-                pb.environment().put("PATH", path);
-            if (systemRoot != null)
-                pb.environment().put("SystemRoot", systemRoot);
-
-            // Restrict working directory to the isolated temp folder
-            pb.directory(tempDir.toFile());
             pb.redirectErrorStream(false);
 
             Process process = pb.start();
 
-            boolean finished = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            boolean finished = process.waitFor(TIMEOUT_SECONDS + 5, TimeUnit.SECONDS);
 
             if (!finished) {
                 process.destroyForcibly();
