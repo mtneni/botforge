@@ -2,6 +2,8 @@ package org.legendstack.basebot;
 
 import org.legendstack.basebot.cache.SemanticCacheService;
 import org.legendstack.basebot.observability.BotForgeMetrics;
+import org.legendstack.basebot.audit.AuditService;
+import org.legendstack.basebot.security.TokenBudgetService;
 import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.EmbabelComponent;
 import com.embabel.agent.api.common.ActionContext;
@@ -54,6 +56,8 @@ public class ChatActions {
     private final PersonaRegistry personaRegistry;
     private final OrchestratorService orchestratorService;
     private final BotForgeMetrics metrics;
+    private final AuditService auditService;
+    private final TokenBudgetService tokenBudgetService;
 
     public ChatActions(
             SearchOperations searchOperations,
@@ -68,7 +72,9 @@ public class ChatActions {
             ConversationService conversationService,
             PersonaRegistry personaRegistry,
             OrchestratorService orchestratorService,
-            BotForgeMetrics metrics) {
+            BotForgeMetrics metrics,
+            AuditService auditService,
+            TokenBudgetService tokenBudgetService) {
         this.searchOperations = searchOperations;
         this.globalReferences = globalReferences;
         this.globalTools = globalTools;
@@ -82,6 +88,8 @@ public class ChatActions {
         this.personaRegistry = personaRegistry;
         this.orchestratorService = orchestratorService;
         this.metrics = metrics;
+        this.auditService = auditService;
+        this.tokenBudgetService = tokenBudgetService;
 
         logger.info("ChatActions initialized. Global references: [{}], Global tools: [{}]",
                 globalReferences.stream().map(Named::getName).collect(Collectors.joining(", ")),
@@ -143,6 +151,23 @@ public class ChatActions {
             metrics.stopChatTimer(chatTimerSample);
             return;
         }
+
+        // --- Token Budget & Audit Logging ---
+        int estTokens = Math.max(100, userPrompt.length() / 4 + 100);
+        if (!tokenBudgetService.recordUsage(user.getId(), estTokens)) {
+            logger.warn("User {} exceeded token budget.", user.getId());
+            var msg = conversation.addMessage(new com.embabel.chat.AssistantMessage(
+                    "You have exceeded your daily limit for bot interactions. Please try again tomorrow."));
+            if (conversationId != null) {
+                conversationService.saveMessage(conversationId, msg);
+            }
+            context.sendMessage(msg);
+            metrics.stopChatTimer(chatTimerSample);
+            return;
+        }
+
+        auditService.log(user, AuditService.ACTION_CHAT_MESSAGE,
+                "Prompt length: " + userPrompt.length() + " chars, Est. LLM tokens: " + estTokens);
 
         // --- Assemble RAG references and tools ---
         var tools = new LinkedList<>(globalTools);

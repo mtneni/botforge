@@ -4,21 +4,21 @@
 
 :root {
   /* Gemini-inspired palette — Deep Space & Charcoal */
-  --color-bg-primary: #131314;
+  --color-bg-primary: #0a0a0f;
   /* Deep charcoal background */
-  --color-bg-secondary: #1e1f20;
+  --color-bg-secondary: rgba(20, 20, 30, 0.4);
   /* Secondary surface for sidebars/inputs */
-  --color-bg-tertiary: #282a2c;
+  --color-bg-tertiary: rgba(25, 25, 40, 0.5);
   /* Elevated surface */
-  --color-bg-elevated: #2f3133;
-  --color-bg-hover: #3c3e41;
+  --color-bg-elevated: rgba(35, 35, 50, 0.6);
+  --color-bg-hover: rgba(50, 50, 70, 0.6);
 
   /* Interaction & Accents */
   --color-accent: #8ab4f8;
   /* Gemini Blue */
   --color-accent-hover: #aecbfa;
-  --color-accent-subtle: rgba(138, 180, 248, 0.1);
-  --color-accent-glow: rgba(138, 180, 248, 0.15);
+  --color-accent-subtle: rgba(138, 180, 248, 0.15);
+  --color-accent-glow: rgba(138, 180, 248, 0.25);
 
   /* Text */
   --color-text-primary: #e3e3e3;

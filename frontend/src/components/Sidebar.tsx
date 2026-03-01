@@ -14,7 +14,8 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Edit2,
-    Check
+    Check,
+    Shield
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import '../styles/sidebar.css'
@@ -213,6 +214,10 @@ export function Sidebar({
                         <NavLink to="/studio" className="sidebar-link" title="Persona Studio">
                             <Palette size={18} />
                             <span>Persona Studio</span>
+                        </NavLink>
+                        <NavLink to="/admin" className="sidebar-link" title="Admin Dashboard">
+                            <Shield size={18} />
+                            <span>Admin Center</span>
                         </NavLink>
                     </div>
                 </section>

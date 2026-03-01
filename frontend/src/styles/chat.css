@@ -11,7 +11,7 @@
     flex-direction: row;
     height: 100vh;
     width: 100%;
-    background: var(--color-bg-primary);
+    background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, var(--color-bg-primary) 70%);
     overflow: hidden;
 }
 
@@ -22,7 +22,7 @@
     height: 100vh;
     min-width: 0;
     position: relative;
-    background: var(--color-bg-primary);
+    background: transparent;
 }
 
 /* ── Header — Minimal & Transparent ────── */
@@ -128,8 +128,11 @@
 
 .suggestion-card {
     padding: var(--space-4);
-    background: var(--color-bg-secondary);
-    border: none;
+    background: var(--color-bg-elevated);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-glass-border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     border-radius: var(--radius-lg);
     font-size: 13px;
     color: var(--color-text-secondary);
@@ -269,17 +272,23 @@
 }
 
 .chat-textarea-wrapper {
-    background: var(--color-bg-secondary);
+    background: var(--color-bg-elevated);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--color-glass-border);
     border-radius: var(--radius-xl);
     padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
     display: flex;
     flex-direction: column;
     min-height: 100px;
-    transition: background var(--transition-base);
+    transition: all var(--transition-base);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .chat-textarea-wrapper:focus-within {
     background: var(--color-bg-hover);
+    border-color: var(--color-accent-subtle);
+    box-shadow: 0 8px 32px rgba(138, 180, 248, 0.15);
 }
 
 .chat-textarea {

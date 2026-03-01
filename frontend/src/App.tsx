@@ -2,10 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ChatProvider } from './hooks/useChat'
 import { useAuth } from './hooks/useAuth'
 import { LoginPage } from './pages/LoginPage'
+import { SignupPage } from './pages/SignupPage'
 import { ChatPage } from './pages/ChatPage'
 import { KnowledgePage } from './pages/KnowledgePage'
 import { DataPage } from './pages/DataPage'
 import { StudioPage } from './pages/StudioPage'
+import { AdminPage } from './pages/AdminPage'
 import { MainLayout } from './components/MainLayout'
 
 export function App() {
@@ -26,6 +28,7 @@ export function App() {
         <BrowserRouter>
             <Routes>
                 <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" />} />
+                <Route path="/signup" element={!user ? <SignupPage /> : <Navigate to="/" />} />
 
                 {/* Authenticated Routes */}
                 <Route element={user ? <ChatProvider><MainLayout /></ChatProvider> : <Navigate to="/login" />}>
@@ -34,6 +37,7 @@ export function App() {
                     <Route path="/knowledge" element={<KnowledgePage />} />
                     <Route path="/data" element={<DataPage />} />
                     <Route path="/studio" element={<StudioPage />} />
+                    <Route path="/admin" element={<AdminPage />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" />} />

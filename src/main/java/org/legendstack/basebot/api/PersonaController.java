@@ -3,6 +3,7 @@ package org.legendstack.basebot.api;
 import org.legendstack.basebot.BotForgeProperties;
 import org.legendstack.basebot.PersonaRegistry;
 import org.legendstack.basebot.PersonaRegistry.PersonaPreset;
+import org.legendstack.basebot.audit.AuditService;
 import org.legendstack.basebot.user.BotForgeUserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,12 +22,14 @@ public class PersonaController {
         private final BotForgeUserService userService;
         private final BotForgeProperties properties;
         private final PersonaRegistry personaRegistry;
+        private final AuditService auditService;
 
         public PersonaController(BotForgeUserService userService, BotForgeProperties properties,
-                        PersonaRegistry personaRegistry) {
+                        PersonaRegistry personaRegistry, AuditService auditService) {
                 this.userService = userService;
                 this.properties = properties;
                 this.personaRegistry = personaRegistry;
+                this.auditService = auditService;
         }
 
         public record PersonaCreateRequest(
@@ -135,6 +138,9 @@ public class PersonaController {
                 user.setPersonaOverride(preset.id());
                 user.setObjectiveOverride(preset.objective());
                 user.setBehaviourOverride(preset.behaviour());
+
+                auditService.log(user, AuditService.ACTION_PERSONA_SWITCH,
+                                "Switched to persona via API: " + preset.id());
 
                 return ResponseEntity.ok(Map.of(
                                 "persona", preset.id(),

@@ -1,47 +1,33 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useConfig } from '../hooks/useConfig'
-import { LogIn } from 'lucide-react'
+import { LogIn, UserPlus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import logo from '../assets/logo.png'
 import '../styles/login.css'
 
-export function LoginPage() {
-    const { login } = useAuth()
+export function SignupPage() {
+    const { register } = useAuth()
     const { config } = useConfig()
 
     const [username, setUsername] = useState('')
+    const [displayName, setDisplayName] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
 
-    const persona = config?.persona || 'Assistant'
-    const tagline = config?.tagline || 'Chatbot with RAG and memory'
-    const users = config?.users || []
+    const persona = config?.persona || 'BotForge Enterprise'
+    const tagline = config?.tagline || 'Create your account'
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
-        if (!username.trim()) return
+        if (!username.trim() || !password.trim() || !displayName.trim()) return
         setError('')
         setLoading(true)
         try {
-            await login(username, password)
-        } catch {
-            setError('Invalid credentials — please try again')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleDemoLogin = async (name: string) => {
-        setUsername(name)
-        setPassword(name)
-        setError('')
-        setLoading(true)
-        try {
-            await login(name, name)
-        } catch {
-            setError('Login failed')
+            await register(username, displayName, password)
+        } catch (err: any) {
+            setError(err?.response?.data || 'Failed to register — please try again')
         } finally {
             setLoading(false)
         }
@@ -71,9 +57,23 @@ export function LoginPage() {
                             className="form-input"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter your username"
+                            placeholder="Choose a username"
                             autoFocus
                             autoComplete="username"
+                            required
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">Display Name</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            placeholder="Your full name"
+                            autoComplete="name"
+                            required
                         />
                     </div>
 
@@ -84,51 +84,30 @@ export function LoginPage() {
                             className="form-input"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
-                            autoComplete="current-password"
+                            placeholder="Choose a password"
+                            autoComplete="new-password"
+                            required
                         />
                     </div>
 
                     {error && <div className="login-error">{error}</div>}
 
-                    <button type="submit" className="login-btn" disabled={loading || !username.trim()}>
-                        {loading ? 'Signing in…' : (
+                    <button type="submit" className="login-btn" disabled={loading || !username.trim() || !password.trim() || !displayName.trim()}>
+                        {loading ? 'Creating account…' : (
                             <>
-                                <LogIn size={16} style={{ display: 'inline', verticalAlign: -3, marginRight: 6 }} />
-                                Sign In
+                                <UserPlus size={16} style={{ display: 'inline', verticalAlign: -3, marginRight: 6 }} />
+                                Sign Up
                             </>
                         )}
                     </button>
 
                     <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                        Don't have an account?{' '}
-                        <Link to="/signup" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
-                            Sign Up
+                        Already have an account?{' '}
+                        <Link to="/login" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+                            Sign In
                         </Link>
                     </div>
                 </form>
-
-                {users.length > 0 && (
-                    <div className="demo-section">
-                        <div className="demo-label">Demo Accounts</div>
-                        <div className="demo-users">
-                            {users.map((u: { displayName: string; username: string }) => (
-                                <button
-                                    key={u.username}
-                                    className="demo-user-btn"
-                                    onClick={() => handleDemoLogin(u.username)}
-                                    disabled={loading}
-                                >
-                                    <div className="demo-user-avatar">
-                                        {u.displayName.charAt(0).toUpperCase()}
-                                    </div>
-                                    <span className="demo-user-name">{u.displayName}</span>
-                                    <span className="demo-user-creds">{u.username} / {u.username}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     )
