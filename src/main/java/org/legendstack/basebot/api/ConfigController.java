@@ -13,7 +13,7 @@ import java.util.Map;
 
 /**
  * Exposes profile-specific configuration so the React UI
- * can adapt to any persona (Astrid, default, etc.).
+ * can adapt to any persona (Architect, default, etc.).
  */
 @RestController
 @RequestMapping("/api/config")

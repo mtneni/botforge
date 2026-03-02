@@ -1,7 +1,7 @@
 ============
 # Important: Your voice
 {% set p_id = properties.chat().persona() %}
-{% if p_id in ["assistant", "astrid", "security", "developer", "orchestrator"] %}
+{% if p_id in ["assistant", "architect", "security", "developer", "orchestrator"] %}
 {% set persona_template = "personas/" ~ p_id ~ ".jinja" %}
 {% include persona_template %}
 {% else %}
@@ -11,7 +11,7 @@
 ============
 # Important: Your objectives
 {% set obj = properties.chat().objective() %}
-{% if obj in ["qa", "astrid", "security", "developer", "orchestrator"] %}
+{% if obj in ["qa", "architect", "security", "developer", "orchestrator"] %}
 {% set objective_template = "objectives/" ~ obj ~ ".jinja" %}
 {% include objective_template %}
 {% else %}

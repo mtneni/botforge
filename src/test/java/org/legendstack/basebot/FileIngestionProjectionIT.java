@@ -36,11 +36,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * <p>
  * Prerequisites: Neo4j running, API key set (e.g. OPENAI_API_KEY).
  */
-@SpringBootTest(
-        classes = TestBotForgeApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.NONE
-)
-@ActiveProfiles({"it", "astrid"})
+@SpringBootTest(classes = TestBotForgeApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@ActiveProfiles({ "it", "architect" })
 @Timeout(value = 5, unit = TimeUnit.MINUTES)
 class FileIngestionProjectionIT {
 
@@ -169,15 +166,16 @@ class FileIngestionProjectionIT {
     }
 
     /**
-     * Verify that entities with subtype labels also carry their inherited parent labels.
-     * E.g., a Musician node must also have the Person label, and an Author must also have Person.
+     * Verify that entities with subtype labels also carry their inherited parent
+     * labels.
+     * E.g., a Musician node must also have the Person label, and an Author must
+     * also have Person.
      */
     private void assertLabelInheritance() {
         // Map of subtype -> expected inherited labels
         var expectedInheritance = Map.of(
                 "Musician", Set.of("Person"),
-                "Author", Set.of("Person")
-        );
+                "Author", Set.of("Person"));
 
         var allEntities = queryAllTestEntities();
         logger.info("Found {} entities total in the graph", allEntities.size());
@@ -241,10 +239,8 @@ class FileIngestionProjectionIT {
                             return Map.<String, Object>of(
                                     "id", row.get(0) != null ? row.get(0) : "",
                                     "name", row.get(1) != null ? row.get(1) : "",
-                                    "labels", row.get(2) != null ? row.get(2) : List.of()
-                            );
-                        })
-        );
+                                    "labels", row.get(2) != null ? row.get(2) : List.of());
+                        }));
     }
 
     private void assertContainsAny(String text, String description, String... keywords) {
@@ -259,7 +255,8 @@ class FileIngestionProjectionIT {
 
     /**
      * Query all outgoing relationships from an entity by ID.
-     * Returns each relationship as [sourceName, relType, targetName, targetLabels, confidence].
+     * Returns each relationship as [sourceName, relType, targetName, targetLabels,
+     * confidence].
      */
     private List<Map<String, Object>> queryRelationshipsForEntity(String entityId) {
         var statement = """
@@ -282,23 +279,21 @@ class FileIngestionProjectionIT {
                                     "type", row.get(1) != null ? row.get(1) : "",
                                     "targetName", row.get(2) != null ? row.get(2) : "",
                                     "targetLabels", row.get(3) != null ? row.get(3) : "",
-                                    "confidence", row.get(4) != null ? row.get(4) : ""
-                            );
-                        })
-        );
+                                    "confidence", row.get(4) != null ? row.get(4) : "");
+                        }));
     }
 
     private void cleanTestEntities() {
         try {
-            // Delete the test user entity and any entities + relationships created during the test
+            // Delete the test user entity and any entities + relationships created during
+            // the test
             var statement = """
                     MATCH (source {id: $id})-[r]->()
                     DELETE r
                     """;
             persistenceManager.execute(
                     QuerySpecification.withStatement(statement)
-                            .bind(Map.of("id", testUser.getId()))
-            );
+                            .bind(Map.of("id", testUser.getId())));
 
             // Delete the user node itself
             var deleteUser = """
@@ -307,8 +302,7 @@ class FileIngestionProjectionIT {
                     """;
             persistenceManager.execute(
                     QuerySpecification.withStatement(deleteUser)
-                            .bind(Map.of("id", testUser.getId()))
-            );
+                            .bind(Map.of("id", testUser.getId())));
 
             logger.info("Cleaned up test entity: {}", testUser.getId());
         } catch (Exception e) {

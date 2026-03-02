@@ -126,7 +126,7 @@ export function StudioPage() {
     const getIcon = (id: string) => {
         switch (id) {
             case 'assistant': return <Sparkles size={24} />
-            case 'astrid': return <Wand2 size={24} />
+            case 'architect': return <Wand2 size={24} />
             case 'security': return <Shield size={24} />
             case 'developer': return <Zap size={24} />
             default: return <Terminal size={24} />
@@ -135,7 +135,7 @@ export function StudioPage() {
 
     const getColorClass = (id: string) => {
         switch (id) {
-            case 'astrid': return '#e879f9' // Fuchsia
+            case 'architect': return '#e879f9' // Fuchsia
             case 'assistant': return '#8ab4f8' // Blue
             case 'security': return '#4ade80' // Green
             case 'developer': return '#fcd34d' // Amber
@@ -234,7 +234,7 @@ export function StudioPage() {
                                     <div style={{ textAlign: 'left' }}>
                                         <h4 style={{ color: '#fff', marginBottom: '4px' }}>Expert Tip</h4>
                                         <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                                            Switch to <strong>Astrid</strong> for UI design suggestions and creative copywriting, or use <strong>Security</strong> profile for deep code audits and compliance checks.
+                                            Switch to <strong>Architect</strong> for UI design suggestions and creative copywriting, or use <strong>Security</strong> profile for deep code audits and compliance checks.
                                         </p>
                                     </div>
                                 </div>

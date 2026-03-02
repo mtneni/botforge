@@ -33,7 +33,7 @@ export function StudioList({
     const getIcon = (id: string) => {
         switch (id) {
             case 'assistant': return <Sparkles size={24} />
-            case 'astrid': return <Wand2 size={24} />
+            case 'architect': return <Wand2 size={24} />
             case 'security': return <Shield size={24} />
             case 'developer': return <Zap size={24} />
             default: return <Terminal size={24} />
@@ -42,7 +42,7 @@ export function StudioList({
 
     const getColorClass = (id: string) => {
         switch (id) {
-            case 'astrid': return '#e879f9' // Fuchsia
+            case 'architect': return '#e879f9' // Fuchsia
             case 'assistant': return '#8ab4f8' // Blue
             case 'security': return '#4ade80' // Green
             case 'developer': return '#fcd34d' // Amber
@@ -113,7 +113,7 @@ export function StudioList({
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '16px' }}>
                         <span className="schema-tag" style={{ opacity: 0.7, fontSize: '0.65rem' }}>RAG</span>
                         <span className="schema-tag" style={{ opacity: 0.7, fontSize: '0.65rem' }}>Tool-Call</span>
-                        {p.id === 'astrid' && <span className="schema-tag" style={{ color: '#e879f9', background: 'rgba(232, 121, 249, 0.1)', fontSize: '0.65rem' }}>Creative Suite</span>}
+                        {p.id === 'architect' && <span className="schema-tag" style={{ color: '#e879f9', background: 'rgba(232, 121, 249, 0.1)', fontSize: '0.65rem' }}>Creative Suite</span>}
                         {p.active && <div style={{ display: 'flex', marginLeft: 'auto', gap: '4px' }}><Star size={12} fill={getColorClass(p.id)} color={getColorClass(p.id)} /></div>}
                     </div>
                 </div>

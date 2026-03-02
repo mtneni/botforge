@@ -18,11 +18,11 @@ Each bot **must** gate its `@Configuration` class with a Spring `@Profile` so th
 its beans are only loaded when that profile is active:
 
 ```java
-package com.embabel.bot.astrid;
+package com.embabel.bot.architect;
 
 @Configuration
-@Profile("astrid")
-public class AstridConfiguration {
+@Profile("architect")
+public class ArchitectConfiguration {
     // Define tools, LlmReferences, or any beans
 }
 ```
@@ -32,10 +32,10 @@ Activate via `spring.profiles.active`:
 ```yaml
 spring:
   profiles:
-    active: astrid
+    active: architect
 ```
 
-Or multiple: `spring.profiles.active=astrid,otherbot`
+Or multiple: `spring.profiles.active=architect,otherbot`
 
 ### 2. Property Overrides
 
@@ -43,11 +43,11 @@ Create `application-<profile>.properties` (or `.yml`) in `src/main/resources` to
 override any `botforge.*` property when the profile is active. Spring Boot merges
 profile-specific properties on top of the base `application.yml`.
 
-Example `application-astrid.properties`:
+Example `application-architect.properties`:
 
 ```properties
-botforge.persona=astrid
-botforge.objective=astrid
+botforge.persona=architect
+botforge.objective=architect
 botforge.max-words=50
 botforge.chat-llm.temperature=1.38
 ```
@@ -73,21 +73,21 @@ Key `botforge.*` properties:
 Add Jinja templates to `src/main/resources/prompts/` to define the bot's voice
 and goals. The template names must match the property values.
 
-For a bot named "astrid" with `botforge.persona=astrid` and `botforge.objective=astrid`:
+For a bot named "architect" with `botforge.persona=architect` and `botforge.objective=architect`:
 
 ```
 src/main/resources/
   prompts/
-    personas/astrid.jinja      # "Your voice" — personality, tone, style
-    objectives/astrid.jinja    # "Your objectives" — what the bot should do
-    behaviours/astrid.jinja    # "Your behaviour" — optional, use "default" to skip
+    personas/architect.jinja      # "Your voice" — personality, tone, style
+    objectives/architect.jinja    # "Your objectives" — what the bot should do
+    behaviours/architect.jinja    # "Your behaviour" — optional, use "default" to skip
 ```
 
 Templates have access to `properties` (BotForgeProperties) and `user` (BotForgeUser)
 via the Jinja context. They can also include shared elements:
 
 ```jinja
-You are Astrid, a warm and insightful astrologer.
+You are Architect, a warm and insightful astrologer.
 
 {% include "elements/thorough_memory" %}
 ```
@@ -99,7 +99,7 @@ These are automatically picked up for proposition extraction and memory
 when the bot package is listed in `botforge.memory.entity-packages`:
 
 ```properties
-botforge.memory.entity-packages=com.embabel.bot.astrid
+botforge.memory.entity-packages=com.embabel.bot.architect
 ```
 
 Any `NamedEntity` classes found in that package are added to the data dictionary,
@@ -112,8 +112,8 @@ These are picked up by `ChatActions` when wired into the prompt runner.
 
 ```java
 @Configuration
-@Profile("astrid")
-public class AstridConfiguration {
+@Profile("architect")
+public class ArchitectConfiguration {
 
     @Bean
     public AstrologyTools astrologyTools() {
@@ -127,31 +127,31 @@ system prompt (via `contribution()`) and expose tools (via `tools()`). For examp
 DICE's `Memory` class is an `LlmReference` that surfaces key memories in the prompt
 and provides a search tool for additional retrieval.
 
-## Complete Example: Astrid
+## Complete Example: Architect
 
 **File structure:**
 
 ```
 src/main/
-  java/com/embabel/bot/astrid/
-    AstridConfiguration.java
+  java/com/embabel/bot/architect/
+    ArchitectConfiguration.java
   resources/
-    application-astrid.properties
+    application-architect.properties
     prompts/
-      personas/astrid.jinja
-      objectives/astrid.jinja
+      personas/architect.jinja
+      objectives/architect.jinja
 ```
 
-**`AstridConfiguration.java`:**
+**`ArchitectConfiguration.java`:**
 
 ```java
-package com.embabel.bot.astrid;
+package com.embabel.bot.architect;
 
-import astrid.bot.org.legendstack.AstrologyTools;
+import architect.bot.org.legendstack.AstrologyTools;
 
 @Configuration
-@Profile("astrid")
-public class AstridConfiguration {
+@Profile("architect")
+public class ArchitectConfiguration {
 
     @Bean
     public AstrologyTools astrologyTools() {
@@ -160,26 +160,26 @@ public class AstridConfiguration {
 }
 ```
 
-**`application-astrid.properties`:**
+**`application-architect.properties`:**
 
 ```properties
 botforge.bot-packages=com.embabel.bot
-botforge.persona=astrid
-botforge.objective=astrid
+botforge.persona=architect
+botforge.objective=architect
 botforge.max-words=50
 botforge.chat-llm.temperature=1.38
 ```
 
-**`prompts/personas/astrid.jinja`:**
+**`prompts/personas/architect.jinja`:**
 
 ```jinja
-You are Astrid, a warm and insightful astrologer.
+You are Architect, a warm and insightful astrologer.
 You speak with gentle authority about celestial matters.
 
 {% include "dice/thorough_memory" %}
 ```
 
-**`prompts/objectives/astrid.jinja`:**
+**`prompts/objectives/architect.jinja`:**
 
 ```jinja
 Help the user explore astrological insights about themselves
@@ -192,5 +192,5 @@ to provide personalized readings.
 ```yaml
 spring:
   profiles:
-    active: astrid
+    active: architect
 ```

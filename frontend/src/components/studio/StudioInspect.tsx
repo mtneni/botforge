@@ -23,7 +23,7 @@ export function StudioInspect({ persona, onClose, onSwitch, onEdit, onArchive }:
     const getIcon = (id: string) => {
         switch (id) {
             case 'assistant': return <Sparkles size={24} />
-            case 'astrid': return <Wand2 size={24} />
+            case 'architect': return <Wand2 size={24} />
             case 'security': return <Shield size={24} />
             case 'developer': return <Zap size={24} />
             default: return <Terminal size={24} />
@@ -32,7 +32,7 @@ export function StudioInspect({ persona, onClose, onSwitch, onEdit, onArchive }:
 
     const getColorClass = (id: string) => {
         switch (id) {
-            case 'astrid': return '#e879f9' // Fuchsia
+            case 'architect': return '#e879f9' // Fuchsia
             case 'assistant': return '#8ab4f8' // Blue
             case 'security': return '#4ade80' // Green
             case 'developer': return '#fcd34d' // Amber

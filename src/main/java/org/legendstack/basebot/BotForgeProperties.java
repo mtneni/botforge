@@ -28,7 +28,7 @@ import java.util.List;
  *                         or a file path (absolute or relative to the working
  *                         directory).
  * @param stylesheet       optional additional stylesheet to load (e.g.,
- *                         "astrid"). When set,
+ *                         "architect"). When set,
  *                         loads {@code themes/BotForge/<stylesheet>.css} as an
  *                         override on top
  *                         of the base theme.
