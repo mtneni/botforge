@@ -58,4 +58,37 @@ public class DesignDocumentationTool {
             return "Error publishing document: " + e.getMessage();
         }
     }
+
+    @LlmTool(description = """
+            List all previously published design documents, ADRs, and diagrams for the current user's team.
+            Use this to reference earlier work or check what architecture artifacts exist.
+            """)
+    public String listPublishedDocs() {
+        try {
+            var user = userService.getAuthenticatedUser();
+            Path teamDir = Paths.get(DESIGNS_DIR, user.getTeamId());
+            if (!Files.exists(teamDir)) {
+                return "No design documents have been published yet for your team.";
+            }
+
+            StringBuilder sb = new StringBuilder("## Published Design Documents\n\n");
+            try (var walk = Files.walk(teamDir, 3)) {
+                var files = walk.filter(Files::isRegularFile)
+                        .sorted()
+                        .toList();
+                if (files.isEmpty()) {
+                    return "No design documents have been published yet for your team.";
+                }
+                for (Path file : files) {
+                    String relative = teamDir.relativize(file).toString().replace('\\', '/');
+                    long size = Files.size(file);
+                    sb.append(String.format("- `%s` (%d bytes)\n", relative, size));
+                }
+            }
+            return sb.toString();
+        } catch (IOException e) {
+            logger.error("Failed to list published docs", e);
+            return "Error listing documents: " + e.getMessage();
+        }
+    }
 }
