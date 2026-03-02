@@ -1,8 +1,8 @@
 # Bot Packages
 
-This directory contains bot-specific implementations under `com.embabel.bot.<botname>`.
+This directory contains bot-specific implementations under `org.legendstack.bot.<botname>`.
 
-Bot packages are **not** scanned by default. You must configure `botforge.bot-packages=com.embabel.bot
+Bot packages are **not** scanned by default. You must configure `botforge.bot-packages=org.legendstack.bot
 
 ## Extension Mechanism
 
@@ -18,7 +18,7 @@ Each bot **must** gate its `@Configuration` class with a Spring `@Profile` so th
 its beans are only loaded when that profile is active:
 
 ```java
-package com.embabel.bot.architect;
+package org.legendstack.bot.architect;
 
 @Configuration
 @Profile("architect")
@@ -99,7 +99,7 @@ These are automatically picked up for proposition extraction and memory
 when the bot package is listed in `botforge.memory.entity-packages`:
 
 ```properties
-botforge.memory.entity-packages=com.embabel.bot.architect
+botforge.memory.entity-packages=org.legendstack.bot.architect
 ```
 
 Any `NamedEntity` classes found in that package are added to the data dictionary,
@@ -145,7 +145,7 @@ src/main/
 **`ArchitectConfiguration.java`:**
 
 ```java
-package com.embabel.bot.architect;
+package org.legendstack.bot.architect;
 
 import architect.bot.org.legendstack.AstrologyTools;
 
@@ -163,7 +163,7 @@ public class ArchitectConfiguration {
 **`application-architect.properties`:**
 
 ```properties
-botforge.bot-packages=com.embabel.bot
+botforge.bot-packages=org.legendstack.bot
 botforge.persona=architect
 botforge.objective=architect
 botforge.max-words=50

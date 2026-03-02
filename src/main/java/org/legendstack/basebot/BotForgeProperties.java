@@ -18,7 +18,7 @@ import java.util.List;
  * @param neoRag           Neo4j RAG service configuration
  * @param memory           proposition extraction configuration
  * @param botPackages      additional packages to scan for bot components (e.g.,
- *                         "com.embabel.bot").
+ *                         "org.legendstack.bot").
  *                         Beans in these packages should be gated with
  *                         {@code @Profile}.
  * @param initialDocuments list of document URIs to ingest into the global

@@ -21,7 +21,7 @@ import org.legendstack.basebot.conversation.ConversationService;
  * The platform can use any action to respond to user messages.
  * Picks up references and tools configured as Spring beans.
  * Thus extensibility works via profile — simply add beans
- * under com.embabel.bot
+ * under org.legendstack.bot
  */
 @EmbabelComponent
 public class ChatActions {
