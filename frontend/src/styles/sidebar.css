@@ -159,11 +159,12 @@
 }
 
 .sidebar-link {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
     padding: 10px 12px;
     border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-3);
     color: var(--color-text-secondary);
     text-decoration: none;
     font-size: 14px;
@@ -176,6 +177,7 @@
     width: 100%;
     overflow: hidden;
     white-space: nowrap;
+    line-height: 1;
 }
 
 /* Resources items size small */
@@ -215,7 +217,9 @@
     color: var(--color-text-primary);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--space-3);
+    line-height: 1;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -224,6 +228,8 @@
     width: 100%;
     overflow: hidden;
     white-space: nowrap;
+    line-height: 1;
+    justify-content: center;
 }
 
 .new-chat-btn span {
@@ -256,8 +262,11 @@
     flex: 1;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: var(--space-3);
-    padding: 8px 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    line-height: 1;
     color: var(--color-text-secondary);
     text-decoration: none;
     font-size: 13px;
@@ -481,7 +490,10 @@
     width: 44px;
     height: 44px;
     padding: 0;
+    display: flex;
     justify-content: center;
+    align-items: center;
+    gap: 0;
     border-radius: 12px;
     margin-left: 0;
     margin-right: 0;
@@ -496,26 +508,7 @@
     /* Keep this as none when collapsed to avoid icon mess */
 }
 
-.collapsed .search-wrapper {
-    justify-content: center;
-}
-
-.collapsed .search-input {
-    width: 44px;
-    padding: 10px;
-    background: transparent;
-    border-color: transparent;
-}
-
-.collapsed .search-icon {
-    left: 15px;
-}
-
-.collapsed .search-input:focus {
-    width: 140px;
-    background: var(--color-bg-elevated);
-    border-color: var(--color-accent);
-}
+/* Search removed from collapsed JSX */
 
 .collapsed .sidebar-footer {
     align-items: center;

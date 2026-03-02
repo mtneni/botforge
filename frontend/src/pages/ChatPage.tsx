@@ -50,7 +50,6 @@ export function ChatPage() {
         disconnect,
         fetchConversations,
         loadConversation,
-        createNewChat,
         deleteConversation,
         memoryInsights
     } = useChat()

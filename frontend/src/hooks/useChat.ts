@@ -38,7 +38,8 @@ interface ChatContextType {
     sendMessage: (text: string) => Promise<void>;
     loadConversation: (id: string, skipMessages?: boolean) => Promise<void>;
     fetchConversations: () => Promise<void>;
-    createNewChat: (title?: string, persona?: string) => Promise<string | undefined>;
+    startNewChat: () => void;
+    persistNewChat: (title?: string, persona?: string) => Promise<string | undefined>;
     clearSession: () => Promise<void>;
     deleteConversation: (id: string) => Promise<void>;
     renameConversation: (id: string, newTitle: string) => Promise<void>;
@@ -154,11 +155,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
     }, [setMessages]);
 
-    const createNewChat = useCallback(async (title = 'New Conversation', persona?: string) => {
+    const startNewChat = useCallback(() => {
+        setMessages([]);
+        setActiveConversationId(null);
+        activeIdRef.current = null;
+        navigate('/');
+    }, [navigate]);
+
+    const persistNewChat = useCallback(async (title = 'New Conversation', persona?: string) => {
         try {
             const chat = await api.post<ConversationData>('/api/chat/new', { title, persona });
             setConversations(prev => [chat, ...prev]);
             activeIdRef.current = chat.id;
+            setActiveConversationId(chat.id);
             navigate(`/chat/${chat.id}`);
             return chat.id;
         } catch (e) {
@@ -171,7 +180,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         let cid: string | null | undefined = activeIdRef.current;
         if (!cid) {
-            cid = await createNewChat(text.slice(0, 30) + '...');
+            cid = await persistNewChat(text.slice(0, 30) + '...');
         }
         if (!cid) return;
 
@@ -187,7 +196,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             setSending(false);
             setMessages((prev) => [...prev, { role: 'error', content: e.message }]);
         }
-    }, [createNewChat]);
+    }, [persistNewChat]);
 
     const clearSession = useCallback(async () => {
         if (activeConversationId) {
@@ -243,7 +252,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         sendMessage,
         loadConversation,
         fetchConversations,
-        createNewChat,
+        startNewChat,
+        persistNewChat,
         clearSession,
         deleteConversation,
         renameConversation,

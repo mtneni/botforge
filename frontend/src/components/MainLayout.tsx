@@ -7,18 +7,15 @@ export function MainLayout() {
     const {
         conversations,
         activeConversationId,
-        createNewChat,
+        startNewChat,
         deleteConversation,
         renameConversation
     } = useChat()
 
-    // We don't need activeTab/onTabChange anymore if we use NavLink in Sidebar
-    // But for now, we'll keep the Sidebar props compatible until we refactor it.
-
     return (
         <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden' }}>
             <Sidebar
-                onNewChat={createNewChat}
+                onNewChat={startNewChat}
                 conversations={conversations}
                 activeConversationId={activeConversationId}
                 onDeleteConversation={deleteConversation}

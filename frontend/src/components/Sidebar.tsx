@@ -96,19 +96,21 @@ export function Sidebar({
                 </div>
             </header>
 
-            <div className="sidebar-search">
-                <div className="search-wrapper">
-                    <Search size={14} className="search-icon" />
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder={isCollapsed ? "" : "Search chats..."}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        title="Search chats"
-                    />
+            {!isCollapsed && (
+                <div className="sidebar-search">
+                    <div className="search-wrapper">
+                        <Search size={14} className="search-icon" />
+                        <input
+                            type="text"
+                            className="search-input"
+                            placeholder="Search chats..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            title="Search chats"
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="sidebar-content">
                 {/* Workspace Section */}
@@ -125,77 +127,77 @@ export function Sidebar({
                 </section>
 
                 {/* Library Section */}
-                <section className="sidebar-section">
-                    {!isCollapsed && (
+                {!isCollapsed && (
+                    <section className="sidebar-section">
                         <div className="section-label">
                             <span>Recent Chats</span>
                             <Clock size={12} />
                         </div>
-                    )}
-                    <div className="conversation-list">
-                        {filteredConversations.length > 0 ? (
-                            filteredConversations.map(conv => (
-                                <div
-                                    key={conv.id}
-                                    className={`conversation-item-wrapper ${activeConversationId === conv.id ? 'active' : ''}`}
-                                    title={conv.title}
-                                >
-                                    {editingId === conv.id ? (
-                                        <div className="rename-wrapper" onClick={e => e.preventDefault()}>
-                                            <input
-                                                type="text"
-                                                className="rename-input"
-                                                value={editTitle}
-                                                onChange={e => setEditTitle(e.target.value)}
-                                                onKeyDown={e => handleRenameKeyDown(e, conv.id)}
-                                                autoFocus
-                                            />
-                                            <button
-                                                className="confirm-rename-btn"
-                                                onClick={(e) => {
-                                                    e.preventDefault()
-                                                    e.stopPropagation()
-                                                    submitRename(conv.id)
-                                                }}
-                                            >
-                                                <Check size={14} />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <Link to={`/chat/${conv.id}`} className="conversation-item">
-                                            <MessageSquare size={16} />
-                                            <span>{conv.title}</span>
-                                        </Link>
-                                    )}
-                                    {!editingId && (
-                                        <div className="conversation-actions">
-                                            <button
-                                                className="edit-conv-btn"
-                                                onClick={(e) => startRename(conv.id, conv.title, e)}
-                                                title="Rename chat"
-                                            >
-                                                <Edit2 size={14} />
-                                            </button>
-                                            <button
-                                                className="delete-conv-btn"
-                                                onClick={(e) => {
-                                                    e.preventDefault()
-                                                    e.stopPropagation()
-                                                    onDeleteConversation?.(conv.id)
-                                                }}
-                                                title="Delete chat"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            !isCollapsed && <div className="no-results">No chats found</div>
-                        )}
-                    </div>
-                </section>
+                        <div className="conversation-list">
+                            {filteredConversations.length > 0 ? (
+                                filteredConversations.map(conv => (
+                                    <div
+                                        key={conv.id}
+                                        className={`conversation-item-wrapper ${activeConversationId === conv.id ? 'active' : ''}`}
+                                        title={conv.title}
+                                    >
+                                        {editingId === conv.id ? (
+                                            <div className="rename-wrapper" onClick={e => e.preventDefault()}>
+                                                <input
+                                                    type="text"
+                                                    className="rename-input"
+                                                    value={editTitle}
+                                                    onChange={e => setEditTitle(e.target.value)}
+                                                    onKeyDown={e => handleRenameKeyDown(e, conv.id)}
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    className="confirm-rename-btn"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                        submitRename(conv.id)
+                                                    }}
+                                                >
+                                                    <Check size={14} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <Link to={`/chat/${conv.id}`} className="conversation-item">
+                                                <MessageSquare size={16} />
+                                                <span>{conv.title}</span>
+                                            </Link>
+                                        )}
+                                        {!editingId && !isCollapsed && (
+                                            <div className="conversation-actions">
+                                                <button
+                                                    className="edit-conv-btn"
+                                                    onClick={(e) => startRename(conv.id, conv.title, e)}
+                                                    title="Rename chat"
+                                                >
+                                                    <Edit2 size={14} />
+                                                </button>
+                                                <button
+                                                    className="delete-conv-btn"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                        onDeleteConversation?.(conv.id)
+                                                    }}
+                                                    title="Delete chat"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="no-results">No chats found</div>
+                            )}
+                        </div>
+                    </section>
+                )}
             </div>
 
             <footer className="sidebar-footer">
