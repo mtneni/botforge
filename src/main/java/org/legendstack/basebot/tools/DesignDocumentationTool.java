@@ -2,6 +2,7 @@ package org.legendstack.basebot.tools;
 
 import com.embabel.agent.api.annotation.LlmTool;
 import com.embabel.agent.api.annotation.UnfoldingTools;
+import org.legendstack.basebot.user.BotForgeUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

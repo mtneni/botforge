@@ -2,6 +2,7 @@ package org.legendstack.bot.architect;
 
 import com.embabel.dice.common.Relations;
 import org.legendstack.basebot.tools.DesignDocumentationTool;
+import org.legendstack.basebot.user.BotForgeUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -15,8 +16,8 @@ import org.springframework.context.annotation.Profile;
 public class ArchitectConfiguration {
 
     @Bean
-    public DesignDocumentationTool architectureTools() {
-        return new DesignDocumentationTool();
+    public DesignDocumentationTool architectureTools(BotForgeUserService userService) {
+        return new DesignDocumentationTool(userService);
     }
 
     @Bean

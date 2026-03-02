@@ -30,13 +30,16 @@ public class GraphRestController {
     /**
      * Cypher template with a placeholder for the ID function name.
      * Neo4j 5.x uses {@code elementId()}, older versions use {@code id()}.
+     * Scoped by teamId to enforce multi-tenant data isolation.
      */
     private static final String GRAPH_QUERY_TEMPLATE = """
             MATCH (n)
-            WHERE n.context = $contextId OR n.contextId = $contextId OR n:NamedEntity OR n:Proposition
+            WHERE (n.context = $contextId OR n.contextId = $contextId OR n:NamedEntity OR n:Proposition)
+              AND (n.teamId = $teamId OR NOT EXISTS(n.teamId))
             WITH n LIMIT 400
             OPTIONAL MATCH (n)-[r]->(m)
-            WHERE m.context = $contextId OR m.contextId = $contextId OR m:NamedEntity OR m:Proposition
+            WHERE (m.context = $contextId OR m.contextId = $contextId OR m:NamedEntity OR m:Proposition)
+              AND (m.teamId = $teamId OR NOT EXISTS(m.teamId))
             RETURN
                 %s(n) as sourceId, labels(n) as sourceLabels, properties(n) as sourceProps,
                 type(r) as relType,
@@ -57,12 +60,12 @@ public class GraphRestController {
         }
 
         try {
-            return ResponseEntity.ok(executeGraphQuery(effectiveContextId, "elementId"));
+            return ResponseEntity.ok(executeGraphQuery(effectiveContextId, user.getTeamId(), "elementId"));
         } catch (Exception e) {
             logger.error("Failed to fetch graph data", e);
             if (e.getMessage() != null && e.getMessage().contains("elementId")) {
                 try {
-                    return ResponseEntity.ok(executeGraphQuery(effectiveContextId, "id"));
+                    return ResponseEntity.ok(executeGraphQuery(effectiveContextId, user.getTeamId(), "id"));
                 } catch (Exception fallbackError) {
                     return errorResponse(fallbackError);
                 }
@@ -76,11 +79,12 @@ public class GraphRestController {
      * and transforms the result into a nodes + links structure.
      */
     @SuppressWarnings("unchecked")
-    private Map<String, Object> executeGraphQuery(String contextId, String idFunction) {
+    private Map<String, Object> executeGraphQuery(String contextId, String teamId, String idFunction) {
         String cypher = GRAPH_QUERY_TEMPLATE.formatted(idFunction, idFunction);
 
         Map<String, Object> params = new HashMap<>();
         params.put("contextId", contextId);
+        params.put("teamId", teamId);
 
         List<Map<String, Object>> rows = (List<Map<String, Object>>) (List) persistenceManager.query(
                 QuerySpecification.withStatement(cypher)
