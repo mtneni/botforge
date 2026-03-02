@@ -22,9 +22,9 @@ Upload documents, ask questions, and get intelligent answers grounded in your co
 BotForge is designed to be **extended without modification**. The core application provides the full RAG infrastructure, React UI, memory system, and chat plumbing out of the box. To build your own chatbot, you add a [Spring profile](https://docs.spring.io/spring-boot/reference/features/profiles.html) with your persona, domain model, tools, and styling -- all in a separate package, without touching any existing code.
 
 <p align="center">
-  <img src="images/cassie_cat_memories.jpg" width="700" alt="Astrid chatbot answering a question about the user's pets, drawing on extracted memories">
+  <img src="images/cassie_cat_memories.jpg" width="700" alt="architext chatbot answering a question about the user's pets, drawing on extracted memories">
   <br>
-  <em>The Astrid chatbot (running on the <a href="https://github.com/embabel/urbot/tree/astrid">astrid branch</a>) recalls facts learned from uploaded files and conversation, stored as typed entities in the knowledge graph.</em>
+  <em>The architext chatbot (running on the <a href="https://github.com/embabel/urbot/tree/architext">architext branch</a>) recalls facts learned from uploaded files and conversation, stored as typed entities in the knowledge graph.</em>
 </p>
 
 ---
@@ -36,6 +36,8 @@ graph TB
     subgraph UI["React 19 Frontend"]
         CV[Chat View]
         PS[Persona Studio]
+        KB[Knowledge Base / Graph]
+        AD[Admin Dashboard / Analytics]
         UD[User Drawer: Documents & Memory]
     end
 
@@ -43,18 +45,30 @@ graph TB
         subgraph Agent["Embabel Agent Platform"]
             CA[ChatActions: Agentic RAG]
             OC[Orchestrator: Auto-Specialization]
+            RP[ResponsePipeline]
+        end
+        subgraph Intelligence["Enterprise Intelligence"]
+            HS[Hybrid Search: RRF Fusion]
+            AN[Analytics Service]
+            EX[Conversation Export]
         end
         subgraph Services["Core Services"]
             SC[Semantic Cache: Redis]
             CS[Conversation Service: Postgres]
             DS[Document Service: Tika]
         end
+        subgraph Security["Security & Governance"]
+            AU[Audit Logging]
+            TB[Token Budget Service]
+            RL[Rate Limiting & Content Moderation]
+            RBAC[RBAC: ADMIN / USER roles]
+        end
     end
 
     subgraph Storage["Persistence Layer"]
-        NEO[Neo4j: Knowledge Graph]
-        PG[PostgreSQL: Chat History]
-        REDIS[Redis: Semantic Cache]
+        NEO[Neo4j: Knowledge Graph + Vector + Full-Text]
+        PG[PostgreSQL: Chat History, Audit, Users]
+        REDIS[Redis: Semantic Cache + Rate Limits]
     end
 
     LLM[(LLM: OpenAI / Claude / Ollama)]
@@ -63,10 +77,15 @@ graph TB
     PS --> CA
     CA --> SC
     CA --> OC
-    CA --> NEO
+    CA --> RP
+    RP --> HS
+    HS --> NEO
     CA --> LLM
     CA --> PG
     SC --> REDIS
+    AU --> PG
+    TB --> REDIS
+    AN --> PG
 ```
 
 ## How Agentic RAG Works
@@ -149,14 +168,15 @@ See [`IncrementalPropositionExtraction`](src/main/java/org/legendstack/basebot/p
 
 | Layer | Technology | Role |
 |---|---|---|
-| **Frontend** | [React 19](https://react.dev/) | Modern UI with Tailwind-inspired glassmorphism |
+| **Frontend** | [React 19](https://react.dev/) | Modern UI with glassmorphism, dark mode, responsive design |
 | **Backend** | [Spring Boot 3.5](https://spring.io/projects/spring-boot) | Application framework (Java 25) |
 | **Agent Framework** | [Embabel Agent](https://github.com/embabel/embabel-agent) | Agentic AI orchestration & Utility AI pattern |
 | **Semantic Memory** | [DICE](https://github.com/embabel/dice) | Fact extraction & knowledge graph projection |
-| **Vector Store** | [Neo4j](https://neo4j.com/) | Graph-backed vector embeddings & relationships |
-| **Relational Store** | [PostgreSQL](https://www.postgresql.org/) | Chat history and persona metadata persistence |
-| **Semantic Cache** | [Redis](https://redis.io/) | Low-latency response caching |
+| **Vector + Graph Store** | [Neo4j](https://neo4j.com/) | Vector embeddings, full-text indexing, knowledge graph |
+| **Relational Store** | [PostgreSQL](https://www.postgresql.org/) | Chat history, audit logs, user accounts, personas |
+| **Cache + Rate Limiting** | [Redis](https://redis.io/) | Semantic cache, token budgets, rate limit counters |
 | **Document Parsing** | [Apache Tika](https://tika.apache.org/) | Extract text from 1000+ file formats |
+| **Search** | Hybrid (Vector + Keyword) | Reciprocal Rank Fusion combining cosine similarity and Lucene full-text |
 | **LLM** | OpenAI / Anthropic / Ollama | Multi-provider support for reasoning and embeddings |
 
 ### Embabel Agent Framework
@@ -172,9 +192,13 @@ BotForge is built on the [Embabel Agent Framework](https://github.com/embabel/em
 
 The frontend is built with React 19 and TypeScript, served via Vite 6:
 
-- `ChatPage.tsx` -- Main chat interface with message bubbles and markdown rendering
+- `ChatPage.tsx` -- Main chat interface with message bubbles, markdown rendering, conversation search & export
 - `StudioPage.tsx` -- The **Persona Studio** where you forge and test new AI identities
-- `KnowledgePage.tsx` -- Management of global and personal document contexts
+- `KnowledgePage.tsx` -- Knowledge base management: documents, schema, knowledge graph visualization
+- `DataPage.tsx` -- Manage personal and global document contexts via tabbed interface
+- `AdminPage.tsx` -- **Admin Dashboard** with analytics overview (stats, activity charts, top users) and audit log viewer
+- `SignupPage.tsx` -- Self-service user registration
+- `LoginPage.tsx` -- Authentication with role-based access
 - `Sidebar.tsx` -- Quick switching between conversations and active personas
 - **Responsive glassmorphism** -- Modern, high-performance UI with dark mode and smooth transitions
 - **SSE Integration** -- Real-time streaming of assistant thoughts and tool execution progress
@@ -211,16 +235,32 @@ Documents are chunked, embedded, and stored in Neo4j via Drivine:
 
 ## Features
 
+### Core AI
 - **Persona Studio** -- Forge specialized AI identities with unique objectives and behaviors
-- **Agentic Orchestration** -- Automatically selects the best persona for the task (Developer, Security, Astrid, etc.)
+- **Agentic Orchestration** -- Automatically selects the best persona for the task via `OrchestratorService`
+- **Hybrid Search** -- Vector similarity + keyword full-text search fused via Reciprocal Rank Fusion (RRF)
 - **Semantic Caching** -- Redis-powered cache that intercepts similar queries to reduce latency and LLM costs
 - **SSE Streaming** -- Real-time "thought" visibility as the agent uses tools and searches documents
-- **Document Ingestion** -- Index PDF, DOCX, XLSX, TXT, MD, HTML via RAG pipeline
 - **Fact Extraction** -- "Learn" from files to build a persistent knowledge graph of user facts via DICE
+- **MCP Support** -- Built-in support for Model Context Protocol tools like Brave Search
+
+### Enterprise & Security
+- **RBAC** -- Role-based access control (`ADMIN`, `USER`) with Spring Security, self-service signup
+- **Audit Logging** -- Every significant action (login, chat, persona switch, document upload) is logged with user, IP, and timestamp
+- **Token Budgets** -- Per-user daily LLM token limits with Redis-backed tracking
+- **Rate Limiting** -- IP- and user-level rate limiting via `RateLimitFilter`
+- **Content Moderation** -- Input sanitization and injection prevention via `ContentModerationFilter`
+- **Multi-Tenancy** -- Team-scoped data isolation across Neo4j, Redis, and all API endpoints
+- **Admin Analytics Dashboard** -- Platform-wide stats, activity breakdown charts, top user leaderboards, and audit log viewer
+
+### Data & Search
+- **Document Ingestion** -- Index PDF, DOCX, XLSX, TXT, MD, HTML via RAG pipeline
 - **Multi-Context Workspaces** -- Personal and global document scopes per user
+- **Conversation Export** -- Download any conversation as Markdown via `/api/chat/{id}/export`
+- **Conversation Search** -- Full-text search across conversation titles and message content
+- **Knowledge Graph** -- Interactive graph visualization of entities and relationships, team-scoped
 - **Session Persistence** -- Full chat history backed by PostgreSQL
 - **Markdown Chat** -- Rich responses with syntax highlighting and message copying
-- **MCP Support** -- Built-in support for Model Context Protocol tools like Brave Search
 
 ## Extensibility
 
@@ -267,19 +307,19 @@ graph TB
 
 ### Extension Axes
 
-Each custom chatbot lives in its own package (e.g. `com.embabel.bot.astrid`) and can extend BotForge along these axes:
+Each custom chatbot lives in its own package (e.g. `org.legendstack.bot.architect`) and can extend BotForge along these axes:
 
 | Axis | Mechanism | Example |
 |---|---|---|
-| **Properties** | [`application-<profile>.properties`](https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.files.profile-specific) overrides persona, objective, LLM model, temperature, stylesheet | `botforge.chat.persona=astrid` |
-| **Persona & Objective** | Jinja templates in `prompts/personas/<name>.jinja` and `prompts/objectives/<name>.jinja` | Astrid's warm astrologer voice |
-| **Domain Model** | `NamedEntity` subinterfaces scoped via `urbot.bot-packages` -- automatically added to the [DICE](https://github.com/embabel/dice) data dictionary for entity extraction | `Pet`, `Band`, `Goal`, `Place` |
-| **Relationships** | A `Relations` bean defines how entities connect (e.g. user _owns_ Pet, user _listens to_ Band) | `Relations.empty().withSemanticBetween(...)` |
-| **Tools** | `@LlmTool` classes, `Subagent` beans, `ToolishRag` beans -- all auto-discovered via [Spring component scanning](https://docs.spring.io/spring-framework/reference/core/beans/classpath-scanning.html) | `AstrologyTools`, `DailyHoroscopeAgent` |
-| **ToolishRag** | Profile-specific `ToolishRag` bean replaces the default `globalDocuments` | `astrologyDocuments` scoped to global context |
-| **Users** | `@Primary UrbotUserService` bean overrides the default user list | Different demo users per bot |
-| **Stylesheet** | `urbot.stylesheet=<name>` loads `themes/urbot/<name>.css` | Custom color palette and branding |
-| **Docker services** | Profile-specific compose services (e.g. an astrology API container) | `docker compose --profile astrology up` |
+| **Properties** | [`application-<profile>.properties`](https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.files.profile-specific) overrides persona, objective, LLM model, temperature, stylesheet | `botforge.chat.persona=architect` |
+| **Persona & Objective** | Jinja templates in `prompts/personas/<name>.jinja` and `prompts/objectives/<name>.jinja` | Architect's design-focused reasoning voice |
+| **Domain Model** | `NamedEntity` subinterfaces scoped via `botforge.bot-packages` -- automatically added to the [DICE](https://github.com/embabel/dice) data dictionary for entity extraction | `SystemComponent`, `DataStore`, `ApiEndpoint` |
+| **Relationships** | A `Relations` bean defines how entities connect (e.g. component _uses_ DataStore) | `Relations.empty().withSemanticBetween(...)` |
+| **Tools** | `@LlmTool` classes, `Subagent` beans, `ToolishRag` beans -- all auto-discovered via [Spring component scanning](https://docs.spring.io/spring-framework/reference/core/beans/classpath-scanning.html) | `DesignDocumentationTool` |
+| **ToolishRag** | Profile-specific `ToolishRag` bean replaces the default `globalDocuments` | Custom scoped document search |
+| **Users** | `@Primary BotForgeUserService` bean overrides the default user list | Different demo users per bot |
+| **Stylesheet** | `botforge.stylesheet=<name>` loads `themes/botforge/<name>.css` | Custom color palette and branding |
+| **Docker services** | Profile-specific compose services | `docker compose --profile <name> up` |
 
 ### 1. Properties
 
@@ -390,32 +430,29 @@ Subagent dailyHoroscope() {
 }
 ```
 
-### Example: Astrid (Astrology Chatbot)
+### Example: Architect (Software Architecture Bot)
 
-The [`astrid`](https://github.com/embabel/urbot/tree/astrid) branch demonstrates a complete custom chatbot built entirely through the extension model:
+The `architect` profile demonstrates a complete custom chatbot built entirely through the extension model:
 
 ```bash
-git checkout astrid
-mvn spring-boot:run -Dspring-boot.run.profiles=astrid
+mvn spring-boot:run -Dspring-boot.run.profiles=architect
 ```
 
-The astrid branch adds:
+The architect profile adds:
 
 | Component | What it provides |
 |---|---|
-| `AstridConfiguration` | `Relations` bean, `ToolishRag` for astrology docs, `DailyHoroscopeAgent` subagent, custom users |
-| `AstrologyTools` | `@LlmTool` methods wrapping a Swiss Ephemeris API for natal charts and transits |
-| Domain interfaces (`Pet`, `Band`, `Book`, `Goal`, `Place`, `Person`, `Author`, `Food`, `Hobby`) | Typed entity extraction from conversation -- DICE learns about pets, music taste, travel history, etc. |
-| `astrid.jinja` persona | An Australian astrologer who speaks casually and believes the stars explain life |
-| `astrid.css` | Custom dark theme with astrology-inspired colors |
-| `application-astrid.properties` | Persona, objective, high temperature (1.38), bot package, stylesheet |
+| `ArchitectConfiguration` | `Relations` bean, domain model wiring, `DesignDocumentationTool`, custom users |
+| Domain interfaces (`SystemComponent`, `ApiEndpoint`, `DataStore`, `AIAgent`, `LLMModel`, `DeploymentTarget`) | Typed entity extraction for software architecture -- DICE learns about system components, APIs, data stores, etc. |
+| `architect.jinja` persona | A senior software architect who reasons about system design, trade-offs, and best practices |
+| `application-architect.properties` | Persona, objective, bot package configuration |
 
-The domain interfaces in the astrid branch are the key enabler for rich memory. When a user says "I have a cat named Artemis", DICE:
-1. Extracts the proposition "User owns a cat named Artemis"
-2. Resolves "Artemis" to a `Pet` entity (because `Pet extends NamedEntity` exists in the schema)
-3. Creates the graph relationship `(User)-[:OWNS]->(Pet {name: "Artemis", type: "cat"})` (because `Relations` defines `withSemanticBetween("UrbotUser", "Pet", "owns", ...)`)
+The domain interfaces enable rich architectural knowledge. When a user describes "We use PostgreSQL for user data and Redis for caching", DICE:
+1. Extracts propositions like "System uses PostgreSQL for user data"
+2. Resolves "PostgreSQL" to a `DataStore` entity and "Redis" to another `DataStore`
+3. Creates typed graph relationships linking system components to their data stores
 
-Without the `Pet` interface, DICE would still extract the proposition but wouldn't create a typed entity or relationship.
+Without the domain interfaces, DICE would still extract propositions but wouldn't create typed entities or relationships.
 
 <p align="center">
   <img src="images/person_graph.jpg" width="700" alt="Neo4j graph showing Cassie Silver's relationships to people, musicians, and interests">
@@ -425,40 +462,55 @@ Without the `Pet` interface, DICE would still extract the proposition but wouldn
 
 ### Creating Your Own Bot
 
-1. Create a package under `src/main/java/com/embabel/bot/<yourbot>/`
+1. Create a package under `src/main/java/org/legendstack/bot/<yourbot>/`
 2. Add a `@Configuration` class (gated with `@Profile("<yourbot>")`) with your beans -- tools, `ToolishRag`, domain relations, users
 3. Add domain interfaces extending `NamedEntity` for entity types you want extracted
-4. Add `application-<yourbot>.properties` with `urbot.bot-packages=com.embabel.bot.<yourbot>` and your persona/objective names
+4. Add `application-<yourbot>.properties` with `botforge.bot-packages=org.legendstack.bot.<yourbot>` and your persona/objective names
 5. Add Jinja templates under `prompts/personas/` and `prompts/objectives/`
 6. Run with `mvn spring-boot:run -Dspring-boot.run.profiles=<yourbot>`
 
-See [`src/main/java/com/embabel/bot/README.md`](src/main/java/org/legendstack/bot/README.md) for the full extension reference.
+See [`src/main/java/org/legendstack/bot/README.md`](src/main/java/org/legendstack/bot/README.md) for the full extension reference.
 
 ## Project Structure
 
 ```
-src/main/java/org/devcouncil/
-├── corebot/                        # Core application infrastructure
-│   ├── api/, cache/, conversation/, event/, ... # Feature modules
-│   └── UrbotApplication.java       # Spring Boot entry point
-├── domain/                         # Shared domain models (DICE entities)
-└── bot/                            # Custom chatbot profiles
-    └── astrid/                     # e.g. Astrid astrology profile
+src/main/java/org/legendstack/
+├── basebot/                            # Core application infrastructure
+│   ├── BotForgeApplication.java        # Spring Boot entry point
+│   ├── ChatActions.java                # Agentic RAG chat pipeline
+│   ├── OrchestratorService.java        # Auto-persona selection
+│   ├── ResponsePipeline.java           # RAG response assembly
+│   ├── PersonaRegistry.java            # Dynamic persona management
+│   ├── admin/                          # Admin analytics (AnalyticsService, AnalyticsController)
+│   ├── api/                            # REST controllers (Chat, Graph, Documents, Schema, Admin)
+│   ├── audit/                          # Audit logging (AuditService, AuditLogRepository)
+│   ├── cache/                          # Semantic cache (Redis)
+│   ├── conversation/                   # Chat persistence, export, search
+│   ├── event/                          # Domain events
+│   ├── observability/                  # Metrics (Micrometer)
+│   ├── proposition/                    # DICE proposition extraction pipeline
+│   ├── rag/                            # RAG services, hybrid search (HybridSearchService)
+│   ├── security/                       # RBAC, token budgets, rate limiting, content moderation
+│   ├── tools/                          # LLM tools (design documentation)
+│   └── user/                           # User management, multi-tenancy
+├── domain/                             # Shared domain models (DICE entities)
+└── bot/                                # Custom chatbot profiles
+    └── architect/                      # Architect bot profile
 
-frontend/                           # React 19 + TypeScript + Vite 6
+frontend/                               # React 19 + TypeScript + Vite 6
 ├── src/
-│   ├── pages/                      # Chat, Studio, Knowledge, Login views
-│   ├── components/                 # Reusable UI fragments (Drawers, Modals)
-│   ├── api/                        # Typed API clients (Axios/SWR)
-│   ├── hooks/                      # Custom hooks for state (useChat, useStudio)
-│   └── styles/                     # Tailwind & Glassmorphism themes
-└── vite.config.ts                  # Vite build & proxy configuration
+│   ├── pages/                          # Chat, Studio, Knowledge, Data, Admin, Login, Signup
+│   ├── components/                     # Reusable UI fragments (Drawers, Modals, Sidebar)
+│   ├── api/                            # Typed API client (Axios)
+│   ├── hooks/                          # Custom hooks (useAuth, useChat, useStudio)
+│   └── styles/                         # CSS with glassmorphism, dark mode themes
+└── vite.config.ts                      # Vite build & proxy configuration
 
 src/main/resources/
 ├── application.yml                     # Base config (server, LLM, Neo4j, chunking)
 ├── application-<profile>.properties    # Profile overrides (persona, objective, bot-packages)
 └── prompts/
-    ├── urbot.jinja                     # Main prompt template
+    ├── botforge.jinja                  # Main prompt template
     ├── elements/
     │   ├── guardrails.jinja            # Safety guidelines
     │   └── personalization.jinja       # Dynamic persona/objective loader
@@ -469,7 +521,7 @@ src/main/resources/
         ├── general.jinja               # Default knowledge base objective
         └── <yourbot>.jinja             # Custom objective per profile
 
-docker-compose.yml                      # Neo4j + optional profile-specific services
+docker-compose.yml                      # Neo4j, PostgreSQL, Redis + optional profile services
 ```
 
 ## Getting Started
@@ -494,10 +546,10 @@ export OPENAI_API_KEY=sk-...
 mvn spring-boot:run
 ```
 
-To run with a custom chatbot profile instead:
+To run with the Architect bot profile:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=astrid
+mvn spring-boot:run -Dspring-boot.run.profiles=architect
 ```
 
 Open [http://localhost:8080](http://localhost:8080) and log in:
@@ -598,8 +650,3 @@ Additional MCP servers can be added under `spring.ai.mcp.client.stdio.connection
 | [**Component Scanning**](https://docs.spring.io/spring-framework/reference/core/beans/classpath-scanning.html) | [`BotPackageScanConfiguration`](src/main/java/org/legendstack/basebot/BotPackageScanConfiguration.java) discovers beans in `urbot.bot-packages` |
 | [**List Injection**](https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-autowire.html) | [`ChatActions`](src/main/java/org/legendstack/basebot/ChatActions.java) collects all `Tool` and `LlmReference` beans automatically |
 | [**`@Primary` Composites**](https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html#beans-autowired-annotation-primary) | [`PropositionConfiguration`](src/main/java/org/legendstack/basebot/proposition/PropositionConfiguration.java) merges all `DataDictionary` and `Relations` beans |
-
-## License
-
-Apache 2.0 -- Copyright 2024-2026 Embabel Software, Inc.
- 
