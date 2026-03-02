@@ -68,4 +68,9 @@ public class ConversationService {
     public void deleteConversation(String conversationId) {
         conversationRepository.deleteById(conversationId);
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<Conversation> searchByTitle(String userId, String query) {
+        return conversationRepository.findByUserIdAndTitleContainingIgnoreCaseOrderByUpdatedAtDesc(userId, query);
+    }
 }

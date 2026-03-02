@@ -52,10 +52,13 @@ public class DrivinePropositionRepository implements PropositionRepository {
         this.userService = userService;
     }
 
+    private static final String PROPOSITION_FULLTEXT_INDEX = "proposition_text_index";
+
     @PostConstruct
     public void provision() {
         logger.info("Provisioning proposition vector index");
         createVectorIndex(PROPOSITION_VECTOR_INDEX, "Proposition");
+        createFullTextIndex();
     }
 
     private void createVectorIndex(String name, String label) {
@@ -72,6 +75,82 @@ public class DrivinePropositionRepository implements PropositionRepository {
             logger.info("Created vector index {} on {}", name, label);
         } catch (Exception e) {
             logger.warn("Could not create vector index {}: {}", name, e.getMessage());
+        }
+    }
+
+    private void createFullTextIndex() {
+        var statement = """
+                CREATE FULLTEXT INDEX `%s` IF NOT EXISTS
+                FOR (n:Proposition)
+                ON EACH [n.text, n.span]
+                """.formatted(PROPOSITION_FULLTEXT_INDEX);
+        try {
+            persistenceManager.execute(QuerySpecification.withStatement(statement));
+            logger.info("Created full-text index {}", PROPOSITION_FULLTEXT_INDEX);
+        } catch (Exception e) {
+            logger.warn("Could not create full-text index {}: {}", PROPOSITION_FULLTEXT_INDEX, e.getMessage());
+        }
+    }
+
+    /**
+     * Keyword search using the Neo4j full-text index.
+     * Returns proposition IDs ranked by Lucene score, scoped to the user's team.
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> findByKeyword(String query, String teamId, int limit) {
+        var cypher = """
+                CALL db.index.fulltext.queryNodes($indexName, $query) YIELD node, score
+                WHERE node:Proposition AND coalesce(node.teamId, $teamId) = $teamId
+                RETURN node.id AS id
+                ORDER BY score DESC
+                LIMIT $limit
+                """;
+        var params = Map.of(
+                "indexName", PROPOSITION_FULLTEXT_INDEX,
+                "query", query,
+                "teamId", teamId,
+                "limit", limit);
+        try {
+            return (List<String>) (List) persistenceManager.query(
+                    QuerySpecification
+                            .withStatement(cypher)
+                            .bind(params)
+                            .transform(String.class));
+        } catch (Exception e) {
+            logger.warn("Keyword search failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Vector similarity search returning just IDs ranked by score.
+     * Convenience method for hybrid search.
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> findSimilarIds(String query, String teamId, int topK) {
+        var embedding = embeddingService.embed(query);
+        var cypher = """
+                CALL db.index.vector.queryNodes($vectorIndex, $topK, $queryVector)
+                YIELD node AS p, score
+                WHERE score >= 0.5 AND coalesce(p.teamId, $teamId) = $teamId
+                RETURN p.id AS id
+                ORDER BY score DESC
+                LIMIT $topK
+                """;
+        var params = Map.of(
+                "vectorIndex", PROPOSITION_VECTOR_INDEX,
+                "topK", topK,
+                "queryVector", embedding,
+                "teamId", teamId);
+        try {
+            return (List<String>) (List) persistenceManager.query(
+                    QuerySpecification
+                            .withStatement(cypher)
+                            .bind(params)
+                            .transform(String.class));
+        } catch (Exception e) {
+            logger.warn("Vector similarity ID search failed: {}", e.getMessage());
+            return List.of();
         }
     }
 

@@ -2,11 +2,16 @@ package org.legendstack.basebot.api;
 
 import com.embabel.chat.UserMessage;
 import org.legendstack.basebot.BotForgeProperties;
+import org.legendstack.basebot.conversation.ChatMessageEntity;
+import org.legendstack.basebot.conversation.ChatMessageRepository;
+import org.legendstack.basebot.conversation.ConversationExportService;
 import org.legendstack.basebot.conversation.ConversationService;
 import org.legendstack.basebot.user.BotForgeUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -31,17 +37,23 @@ public class ChatRestController {
     private final BotForgeProperties properties;
     private final ConversationService conversationService;
     private final SseEmitterRegistry sseRegistry;
+    private final ChatMessageRepository messageRepository;
+    private final ConversationExportService exportService;
 
     public ChatRestController(ChatSessionManager sessionManager,
             BotForgeUserService userService,
             BotForgeProperties properties,
             ConversationService conversationService,
-            SseEmitterRegistry sseRegistry) {
+            SseEmitterRegistry sseRegistry,
+            ChatMessageRepository messageRepository,
+            ConversationExportService exportService) {
         this.sessionManager = sessionManager;
         this.userService = userService;
         this.properties = properties;
         this.conversationService = conversationService;
         this.sseRegistry = sseRegistry;
+        this.messageRepository = messageRepository;
+        this.exportService = exportService;
     }
 
     public record ChatMessageRequest(String message) {
@@ -201,5 +213,62 @@ public class ChatRestController {
                     return ResponseEntity.ok(Map.of("status", "deleted"));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Search across the user's conversations (titles + message content).
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Map<String, Object>> searchConversations(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        if (q == null || q.trim().length() < 2) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Query must be at least 2 characters"));
+        }
+        var user = userService.getAuthenticatedUser();
+        var pageable = PageRequest.of(page, size);
+
+        // Search titles
+        var titleMatches = conversationService.searchByTitle(user.getId(), q);
+
+        // Search message content
+        var messageHits = messageRepository.searchByContent(user.getId(), q, pageable);
+        var messageResults = new ArrayList<Map<String, Object>>();
+        for (ChatMessageEntity msg : messageHits.getContent()) {
+            var result = new HashMap<String, Object>();
+            result.put("conversationId", msg.getConversation().getId());
+            result.put("conversationTitle", msg.getConversation().getTitle());
+            result.put("role", msg.getRole());
+            result.put("preview", msg.getContent().length() > 200
+                    ? msg.getContent().substring(0, 197) + "..."
+                    : msg.getContent());
+            result.put("timestamp", msg.getTimestamp().toEpochMilli());
+            messageResults.add(result);
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "titleMatches", titleMatches,
+                "messageMatches", messageResults,
+                "totalMessageHits", messageHits.getTotalElements()));
+    }
+
+    /**
+     * Export a conversation as Markdown.
+     */
+    @GetMapping("/{conversationId}/export")
+    public ResponseEntity<String> exportConversation(@PathVariable String conversationId) {
+        try {
+            String markdown = exportService.exportAsMarkdown(conversationId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"conversation-" + conversationId + ".md\"")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(markdown);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
