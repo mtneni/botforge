@@ -213,28 +213,26 @@
 /* Specialized New Chat Button */
 .new-chat-btn {
     margin: 0;
-    padding: 12px 16px;
+    padding: 10px 14px;
     background: var(--color-bg-elevated);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid var(--color-glass-border);
-    border-radius: var(--radius-lg);
+    border-radius: 14px;
     color: var(--color-text-primary);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-3);
-    line-height: 1;
-    font-size: 14px;
+    gap: var(--space-2);
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-base);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
     width: 100%;
     overflow: hidden;
     white-space: nowrap;
     line-height: 1;
-    justify-content: center;
 }
 
 .new-chat-btn span {
@@ -304,23 +302,87 @@
     font-weight: 500;
 }
 
-.delete-conv-btn {
-    opacity: 0;
-    padding: 6px;
-    margin-right: 4px;
-    border-radius: 6px;
-    color: var(--color-text-tertiary);
-    transition: all var(--transition-fast);
-    flex-shrink: 0;
-}
-
-.conversation-item-wrapper:hover .delete-conv-btn {
-    opacity: 1;
-}
-
 .delete-conv-btn:hover {
     background: rgba(255, 77, 77, 0.1);
     color: #ff4d4d;
+}
+
+/* Chat Actions & Editing */
+.conversation-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 8px;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.conversation-item-wrapper:hover .conversation-actions {
+    opacity: 1;
+}
+
+.edit-conv-btn,
+.delete-conv-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.edit-conv-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-accent);
+}
+
+/* Rename Interaction */
+.rename-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    margin: 4px 8px;
+}
+
+.rename-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 13px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+    padding: 0;
+    outline: none;
+    min-width: 0;
+}
+
+.confirm-rename-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.confirm-rename-btn:hover {
+    background: var(--color-accent-hover);
+    transform: scale(1.05);
 }
 
 /* Footer Items */
