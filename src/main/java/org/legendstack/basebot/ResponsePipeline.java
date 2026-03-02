@@ -82,10 +82,10 @@ public class ResponsePipeline {
             Timer.Sample chatTimerSample) {
 
         // --- Semantic cache check ---
-        var cached = semanticCacheService.get(recentContextStr, effectiveProperties.chat().persona());
+        var cached = semanticCacheService.get(recentContextStr, user.getTeamId(), effectiveProperties.chat().persona());
         if (cached.isPresent()) {
             metrics.recordCacheHit();
-            logger.info("Serving cached response for: {}", userPrompt);
+            logger.info("Serving cached response [{}] for: {}", user.getTeamId(), userPrompt);
             var msg = conversation.addMessage(new com.embabel.chat.AssistantMessage(cached.get()));
             if (conversationId != null) {
                 conversationService.saveMessage(conversationId, msg);
@@ -149,7 +149,7 @@ public class ResponsePipeline {
         metrics.stopChatTimer(chatTimerSample);
 
         // Store in cache
-        semanticCacheService.put(recentContextStr, effectiveProperties.chat().persona(),
+        semanticCacheService.put(recentContextStr, user.getTeamId(), effectiveProperties.chat().persona(),
                 assistantMessage.getContent());
 
         if (properties.memory().enabled()) {

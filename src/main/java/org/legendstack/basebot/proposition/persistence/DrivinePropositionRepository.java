@@ -17,6 +17,7 @@ import org.drivine.manager.PersistenceManager;
 import org.drivine.query.QuerySpecification;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.legendstack.basebot.user.BotForgeUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,14 +39,17 @@ public class DrivinePropositionRepository implements PropositionRepository {
     private final GraphObjectManager graphObjectManager;
     private final PersistenceManager persistenceManager;
     private final EmbeddingService embeddingService;
+    private final BotForgeUserService userService;
 
     public DrivinePropositionRepository(
             GraphObjectManager graphObjectManager,
             PersistenceManager persistenceManager,
-            EmbeddingService embeddingService) {
+            EmbeddingService embeddingService,
+            BotForgeUserService userService) {
         this.graphObjectManager = graphObjectManager;
         this.persistenceManager = persistenceManager;
         this.embeddingService = embeddingService;
+        this.userService = userService;
     }
 
     @PostConstruct
@@ -79,6 +83,10 @@ public class DrivinePropositionRepository implements PropositionRepository {
     @Override
     @Transactional
     public @NonNull Proposition save(@NonNull Proposition proposition) {
+        // Tag with teamId if not present
+        if (!proposition.getMetadata().containsKey("teamId")) {
+            proposition.getMetadata().put("teamId", userService.getAuthenticatedUser().getTeamId());
+        }
         var view = PropositionView.fromDice(proposition);
         graphObjectManager.save(view, CascadeType.NONE);
 
@@ -103,7 +111,7 @@ public class DrivinePropositionRepository implements PropositionRepository {
     @Override
     @Transactional(readOnly = true)
     public @NonNull List<Proposition> findByMinLevel(int minLevel) {
-        var whereClause = "proposition.level >= " + minLevel;
+        var whereClause = scoped("proposition.level >= " + minLevel);
         return graphObjectManager.loadAll(PropositionView.class, whereClause).stream()
                 .map(PropositionView::toDice)
                 .toList();
@@ -111,7 +119,8 @@ public class DrivinePropositionRepository implements PropositionRepository {
 
     @Transactional(readOnly = true)
     public @NonNull List<Proposition> findByMinLevelAndContext(int minLevel, @NonNull String contextId) {
-        var whereClause = "proposition.level >= " + minLevel + " AND proposition.contextId = '" + contextId + "'";
+        var whereClause = scoped(
+                "proposition.level >= " + minLevel + " AND proposition.contextId = '" + contextId + "'");
         return graphObjectManager.loadAll(PropositionView.class, whereClause).stream()
                 .map(PropositionView::toDice)
                 .toList();
@@ -120,14 +129,17 @@ public class DrivinePropositionRepository implements PropositionRepository {
     @Override
     @Transactional(readOnly = true)
     public @Nullable Proposition findById(@NonNull String id) {
-        var view = graphObjectManager.load(id, PropositionView.class);
-        return view != null ? view.toDice() : null;
+        var where = scoped("proposition.id = '" + id + "'");
+        return graphObjectManager.loadAll(PropositionView.class, where).stream()
+                .findFirst()
+                .map(PropositionView::toDice)
+                .orElse(null);
     }
 
     @Override
     @Transactional(readOnly = true)
     public @NonNull List<Proposition> findAll() {
-        return graphObjectManager.loadAll(PropositionView.class).stream()
+        return graphObjectManager.loadAll(PropositionView.class, scoped(null)).stream()
                 .map(PropositionView::toDice)
                 .toList();
     }
@@ -242,6 +254,11 @@ public class DrivinePropositionRepository implements PropositionRepository {
     public CypherQuery buildCypher(@NonNull PropositionQuery query) {
         var whereConditions = new java.util.ArrayList<String>();
         var params = new java.util.HashMap<String, Object>();
+
+        // Enforce teamId multi-tenancy scoping
+        var teamId = userService.getAuthenticatedUser().getTeamId();
+        whereConditions.add("p.teamId = $teamId");
+        params.put("teamId", teamId);
 
         if (query.getContextIdValue() != null) {
             whereConditions.add("p.contextId = $contextId");
@@ -528,7 +545,7 @@ public class DrivinePropositionRepository implements PropositionRepository {
     @Override
     @Transactional(readOnly = true)
     public @NonNull List<Proposition> findByStatus(@NonNull PropositionStatus status) {
-        var whereClause = "proposition.status = '" + status.name() + "'";
+        var whereClause = scoped("proposition.status = '" + status.name() + "'");
         return graphObjectManager.loadAll(PropositionView.class, whereClause).stream()
                 .map(PropositionView::toDice)
                 .toList();
@@ -537,12 +554,13 @@ public class DrivinePropositionRepository implements PropositionRepository {
     @Override
     @Transactional(readOnly = true)
     public @NonNull List<Proposition> findByGrounding(@NonNull String chunkId) {
+        var teamId = userService.getAuthenticatedUser().getTeamId();
         var cypher = """
-                MATCH (p:Proposition)
+                MATCH (p:Proposition {teamId: $teamId})
                 WHERE $chunkId IN p.grounding
                 RETURN p.id AS id
                 """;
-        var params = Map.of("chunkId", chunkId);
+        var params = Map.of("chunkId", chunkId, "teamId", teamId);
 
         try {
             var ids = persistenceManager.query(
@@ -565,7 +583,7 @@ public class DrivinePropositionRepository implements PropositionRepository {
     @Override
     @Transactional(readOnly = true)
     public @NonNull List<Proposition> findByContextIdValue(@NonNull String contextIdValue) {
-        var whereClause = "proposition.contextId = '" + contextIdValue + "'";
+        var whereClause = scoped("proposition.contextId = '" + contextIdValue + "'");
         return graphObjectManager.loadAll(PropositionView.class, whereClause).stream()
                 .map(PropositionView::toDice)
                 .toList();
@@ -581,8 +599,10 @@ public class DrivinePropositionRepository implements PropositionRepository {
     @Override
     @Transactional(readOnly = true)
     public int count() {
+        var teamId = userService.getAuthenticatedUser().getTeamId();
         var spec = QuerySpecification
-                .withStatement("MATCH (p:Proposition) RETURN count(p) AS count")
+                .withStatement("MATCH (p:Proposition {teamId: $teamId}) RETURN count(p) AS count")
+                .bind(Map.of("teamId", teamId))
                 .transform(Long.class);
         Long result = persistenceManager.getOne(spec);
         return result.intValue();
@@ -590,13 +610,16 @@ public class DrivinePropositionRepository implements PropositionRepository {
 
     @Transactional
     public int clearAll() {
+        var teamId = userService.getAuthenticatedUser().getTeamId();
         var countSpec = QuerySpecification
-                .withStatement("MATCH (p:Proposition) RETURN count(p) AS count")
+                .withStatement("MATCH (p:Proposition {teamId: $teamId}) RETURN count(p) AS count")
+                .bind(Map.of("teamId", teamId))
                 .transform(Long.class);
         Long count = persistenceManager.getOne(countSpec);
 
         var deleteSpec = QuerySpecification
-                .withStatement("MATCH (p:Proposition) DETACH DELETE p");
+                .withStatement("MATCH (p:Proposition {teamId: $teamId}) DETACH DELETE p")
+                .bind(Map.of("teamId", teamId));
         persistenceManager.execute(deleteSpec);
 
         logger.info("Deleted {} propositions", count);
@@ -635,5 +658,11 @@ public class DrivinePropositionRepository implements PropositionRepository {
 
         logger.info("Deleted {} propositions for contexts starting with '{}'", count, contextIdPrefix);
         return count.intValue();
+    }
+
+    private String scoped(String where) {
+        var teamId = userService.getAuthenticatedUser().getTeamId();
+        return "proposition.teamId = '" + teamId + "'"
+                + (where == null || where.isBlank() ? "" : " AND (" + where + ")");
     }
 }

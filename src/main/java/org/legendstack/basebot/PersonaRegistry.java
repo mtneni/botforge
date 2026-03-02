@@ -30,6 +30,8 @@ public class PersonaRegistry {
                                         "Deep code audits and compliance checks", "shield"),
                         new PersonaPreset("developer", "Developer", "developer", "default",
                                         "Fast reasoning profile optimized for coding tasks", "zap"),
+                        new PersonaPreset("architect", "Architect", "architect", "default",
+                                        "High-level system design, data strategy, and technical governance", "layers"),
                         new PersonaPreset("orchestrator", "Orchestrator", "orchestrator", "default",
                                         "Intelligent router that delegates to specialized identities", "network"));
 

@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.Set;
 
 /**
  * JPA entity for persisting BotForge users in PostgreSQL.
@@ -90,6 +91,6 @@ public class BotForgeUserEntity {
      * Convert this JPA entity to the domain model used throughout the application.
      */
     public BotForgeUser toDomainUser() {
-        return new BotForgeUser(id, displayName, username);
+        return new BotForgeUser(id, displayName, username, teamId, Set.of(role));
     }
 }

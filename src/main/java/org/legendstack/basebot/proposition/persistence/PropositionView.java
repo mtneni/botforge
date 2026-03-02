@@ -46,9 +46,11 @@ public class PropositionView {
     }
 
     public static PropositionView fromDice(Proposition p) {
+        String teamId = (String) p.getMetadata().getOrDefault("teamId", "default-team");
         var propNode = new PropositionNode(
                 p.getId(),
                 p.getContextIdValue(),
+                teamId,
                 p.getText(),
                 p.getConfidence(),
                 p.getDecay(),
@@ -90,7 +92,7 @@ public class PropositionView {
                 proposition.getLevel(),
                 proposition.getSourceIds(),
                 proposition.getReinforceCount(),
-                Map.of());
+                Map.of("teamId", proposition.getTeamId()));
     }
 
     @Override

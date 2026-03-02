@@ -25,6 +25,7 @@ public class PropositionNode {
     private String id;
 
     private String contextId;
+    private String teamId;
     private String text;
     private double confidence;
     private double decay;
@@ -45,6 +46,7 @@ public class PropositionNode {
     public PropositionNode(
             @JsonProperty("id") String id,
             @JsonProperty("contextId") String contextId,
+            @JsonProperty("teamId") String teamId,
             @JsonProperty("text") String text,
             @JsonProperty("confidence") double confidence,
             @JsonProperty("decay") double decay,
@@ -61,6 +63,7 @@ public class PropositionNode {
             @JsonProperty("lastAccessed") Instant lastAccessed) {
         this.id = id != null ? id : UUID.randomUUID().toString();
         this.contextId = contextId != null ? contextId : "default";
+        this.teamId = teamId != null ? teamId : "default-team";
         this.text = text;
         this.confidence = confidence;
         this.decay = decay;
@@ -78,8 +81,16 @@ public class PropositionNode {
     }
 
     public PropositionNode(String text, double confidence) {
-        this(UUID.randomUUID().toString(), "default", text, confidence, 0.0, 0.5, null, List.of(),
+        this(UUID.randomUUID().toString(), "default", "default-team", text, confidence, 0.0, 0.5, null, List.of(),
                 Instant.now(), Instant.now(), PropositionStatus.ACTIVE, null, List.of(), 0, 0, Instant.now());
+    }
+
+    public String getTeamId() {
+        return teamId;
+    }
+
+    public void setTeamId(String teamId) {
+        this.teamId = teamId;
     }
 
     public String getId() {

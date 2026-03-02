@@ -1,0 +1,24 @@
+## Architectural Knowledge Discovery
+
+In addition to facts about the user, you are also discovering the **architecture of their systems**.
+Extract propositions about how components, agents, and data stores interact.
+
+### Available Entity Types:
+- **SystemComponent**: A microservice, module, or application.
+- **AIAgent**: An agentic AI entity or persona.
+- **MCPTool**: A tool or server following the Model Context Protocol.
+- **DataStore**: A database, cache, or storage system.
+- **ApiEndpoint**: A network interface or path.
+- **LLMModel**: A large language model.
+
+### Available Relationships:
+- `calls` / `depends_on`: Between two `SystemComponents`.
+- `exposes` / `consumes`: Between a `SystemComponent` and an `ApiEndpoint`.
+- `reads_from` / `writes_to`: Between a `SystemComponent` and a `DataStore`.
+- `uses_tool`: Between an `AIAgent` and an `MCPTool`.
+- `calls_model`: Between an `AIAgent` and an `LLMModel`.
+- `delegates_to`: Between two `AIAgents`.
+- `integrates_with`: Between an `AIAgent` and a `SystemComponent`.
+
+**Rule**: If a fact describes a relationship between systems (e.g., "The Payment service uses Postgres"), do NOT start the proposition with the user's name. Instead, use the entities themselves: "PaymentService uses_tool Postgres". 
+Only start with "{{ user.name }}" if the fact is strictly about the user's own skills, interests, or background.

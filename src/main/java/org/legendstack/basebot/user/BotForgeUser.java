@@ -22,6 +22,7 @@ public class BotForgeUser implements User, Person {
     private final String id;
     private final String displayName;
     private final String username;
+    private final String teamId;
     private final Set<String> roles;
 
     private String currentContextName;
@@ -32,13 +33,14 @@ public class BotForgeUser implements User, Person {
     private volatile String behaviourOverride;
 
     public BotForgeUser(String id, String displayName, String username) {
-        this(id, displayName, username, Set.of("USER"));
+        this(id, displayName, username, "default-team", Set.of("USER"));
     }
 
-    public BotForgeUser(String id, String displayName, String username, Set<String> roles) {
+    public BotForgeUser(String id, String displayName, String username, String teamId, Set<String> roles) {
         this.id = id;
         this.displayName = displayName;
         this.username = username;
+        this.teamId = teamId != null ? teamId : "default-team";
         this.roles = roles;
         this.currentContextName = "personal";
     }
@@ -79,6 +81,10 @@ public class BotForgeUser implements User, Person {
 
     public Set<String> getRoles() {
         return roles;
+    }
+
+    public String getTeamId() {
+        return teamId;
     }
 
     @Override

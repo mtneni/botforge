@@ -47,15 +47,14 @@ public class SemanticCacheService {
     }
 
     /**
-     * Look up a cached response by computing the embedding of the query
-     * and finding the most similar cached entry above the threshold.
+     * Look up a cached response for a specific team.
      */
-    public Optional<String> get(String query, String persona) {
+    public Optional<String> get(String query, String teamId, String persona) {
         try {
             float[] queryEmbedding = embed(query);
-            String pattern = EMBEDDING_PREFIX + persona + ":*";
+            String pattern = EMBEDDING_PREFIX + teamId + ":" + persona + ":*";
 
-            // Scan cached embeddings for this persona
+            // Scan cached embeddings for this team and persona
             var keys = redisTemplate.keys(pattern);
             if (keys == null || keys.isEmpty()) {
                 return Optional.empty();
@@ -79,12 +78,11 @@ public class SemanticCacheService {
             }
 
             if (bestSimilarity >= SIMILARITY_THRESHOLD && bestKey != null) {
-                // Derive the response key from the embedding key
                 String cacheKey = bestKey.replace(EMBEDDING_PREFIX, CACHE_PREFIX);
                 String cached = redisTemplate.opsForValue().get(cacheKey);
                 if (cached != null) {
-                    logger.info("Semantic cache hit (similarity={}) for query: {}",
-                            String.format("%.3f", bestSimilarity), query);
+                    logger.info("Semantic cache hit [{}] (similarity={}) for query: {}",
+                            teamId, String.format("%.3f", bestSimilarity), query);
                     return Optional.of(cached);
                 }
             }
@@ -95,13 +93,13 @@ public class SemanticCacheService {
     }
 
     /**
-     * Store a response with its embedding in the cache.
+     * Store a response with its embedding in the team-scoped cache.
      */
-    public void put(String query, String persona, String response) {
+    public void put(String query, String teamId, String persona, String response) {
         try {
             float[] queryEmbedding = embed(query);
             String normalized = query.trim().toLowerCase();
-            String keySuffix = persona + ":" + Integer.toHexString(normalized.hashCode());
+            String keySuffix = teamId + ":" + persona + ":" + Integer.toHexString(normalized.hashCode());
 
             String cacheKey = CACHE_PREFIX + keySuffix;
             String embeddingKey = EMBEDDING_PREFIX + keySuffix;
@@ -110,7 +108,7 @@ public class SemanticCacheService {
             redisTemplate.opsForValue().set(embeddingKey, serializeEmbedding(queryEmbedding),
                     24, TimeUnit.HOURS);
 
-            logger.debug("Stored response in semantic cache for query: {}", query);
+            logger.debug("Stored response in semantic cache [{}] for query: {}", teamId, query);
         } catch (Exception e) {
             logger.warn("Failed to store in semantic cache: {}", e.getMessage());
         }

@@ -115,10 +115,10 @@ class SecurityConfiguration {
                 return new DummyBotForgeUserService(
                                 entityRepository,
                                 new BotForgeUser("alice-id", "Alice Agu", "alice",
-                                                java.util.Set.of("ADMIN", "USER")),
+                                                "admin-team", java.util.Set.of("ADMIN", "USER")),
                                 new BotForgeUser("cassie-id", "Cassie Silver", "cassie",
-                                                java.util.Set.of("USER")),
+                                                "user-team", java.util.Set.of("USER")),
                                 new BotForgeUser("bob-id", "Bob", "bob",
-                                                java.util.Set.of("USER")));
+                                                "user-team", java.util.Set.of("USER")));
         }
 }
