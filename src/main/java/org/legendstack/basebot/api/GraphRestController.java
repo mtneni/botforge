@@ -35,11 +35,11 @@ public class GraphRestController {
     private static final String GRAPH_QUERY_TEMPLATE = """
             MATCH (n)
             WHERE (n.context = $contextId OR n.contextId = $contextId OR n:NamedEntity OR n:Proposition)
-              AND (n.teamId = $teamId OR NOT EXISTS(n.teamId))
+              AND coalesce(n.teamId, $teamId) = $teamId
             WITH n LIMIT 400
             OPTIONAL MATCH (n)-[r]->(m)
             WHERE (m.context = $contextId OR m.contextId = $contextId OR m:NamedEntity OR m:Proposition)
-              AND (m.teamId = $teamId OR NOT EXISTS(m.teamId))
+              AND coalesce(m.teamId, $teamId) = $teamId
             RETURN
                 %s(n) as sourceId, labels(n) as sourceLabels, properties(n) as sourceProps,
                 type(r) as relType,
@@ -62,15 +62,13 @@ public class GraphRestController {
         try {
             return ResponseEntity.ok(executeGraphQuery(effectiveContextId, user.getTeamId(), "elementId"));
         } catch (Exception e) {
-            logger.error("Failed to fetch graph data", e);
-            if (e.getMessage() != null && e.getMessage().contains("elementId")) {
-                try {
-                    return ResponseEntity.ok(executeGraphQuery(effectiveContextId, user.getTeamId(), "id"));
-                } catch (Exception fallbackError) {
-                    return errorResponse(fallbackError);
-                }
+            logger.warn("Graph query with elementId failed, trying id() fallback: {}", e.getMessage());
+            try {
+                return ResponseEntity.ok(executeGraphQuery(effectiveContextId, user.getTeamId(), "id"));
+            } catch (Exception fallbackError) {
+                logger.error("Graph query fallback also failed", fallbackError);
+                return errorResponse(fallbackError);
             }
-            return errorResponse(e);
         }
     }
 
