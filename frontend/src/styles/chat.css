@@ -70,6 +70,41 @@
     gap: var(--space-2);
 }
 
+.chat-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.header-action-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px 14px;
+    background: var(--color-bg-elevated);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.header-action-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+    border-color: var(--color-accent-subtle);
+    transform: translateY(-1px);
+}
+
+.header-action-btn svg {
+    color: var(--color-accent);
+}
+
 /* ── Messages Area — Centered Focus ─────── */
 
 .messages-container {

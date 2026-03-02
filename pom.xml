@@ -159,6 +159,12 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- OpenAPI / Swagger UI documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>

@@ -1,255 +1,92 @@
-# Extending BotForge with Custom Bot Profiles
+# Extending BotForge: Persona Studio & Custom Bots
 
-BotForge is designed for **extension without modification**. You build new bots by adding your own Spring profile — a package with a persona, domain model, tools, and styling — without touching any core code.
+BotForge is designed to be an extensible platform where you can forge specialized AI agents (personas) without touching the core infrastructure. This guide explains how to extend the system along several axes.
+
+## 1. Persona Studio (No-Code Extension)
+
+The **Persona Studio** (accessible via the Sidebar) is the easiest way to create new bot identities.
+
+### Forging a New Persona
+1. **Name & Identity**: Give your bot a display name and a unique ID.
+2. **Objective**: Define the primary goal (e.g., "Review software architectures for scalability").
+3. **Description**: Set the tone and persona (e.g., "You are a senior systems architect with 20 years of experience in distributed systems").
+4. **Base Template**: Map your persona to a Jinja2 template in `src/main/resources/prompts/personas/`.
+
+### Deployment
+Once saved, the persona is persisted in the PostgreSQL database and appears in the sidebar for all users (or remains private if multi-tenancy is active).
 
 ---
 
-## Architecture
+## 2. Code-Based Extensions (The Architect Pattern)
 
-```mermaid
-graph LR
-    subgraph Core["BotForge Core (never modified)"]
-        Chat["ChatActions"]
-        Pipeline["ResponsePipeline"]
-        Memory["DICE Semantic Memory"]
-        Prompts["Jinja Prompt Engine"]
-        Registry["PersonaRegistry"]
-    end
+For more complex bots that require custom logic, tools, or domain knowledge (like the default `Architect` bot), you should use the **Profile-based Extension Model**.
 
-    subgraph YourBot["Your Bot Profile (additive)"]
-        Config["@Configuration + @Profile"]
-        Domain["NamedEntity Interfaces"]
-        Persona["Jinja Persona Template"]
-        Tools["@LlmTool / ToolishRag"]
-        Relations["Relations Bean"]
-        Props["application-<bot>.properties"]
-    end
+### Step 1: Create a Bot Package
+Add a new package under `org.legendstack.bot.<yourbot>/`. All your custom code should live here.
 
-    Config -->|auto-discovered| Chat
-    Domain -->|DataDictionary| Memory
-    Persona -->|resolved by| Prompts
-    Tools -->|injected into| Chat
-    Relations -->|graph projection| Memory
-    Props -->|overrides| Registry
-```
-
-## Quick Start — Build a Bot in 5 Steps
-
-### 1. Create the Package
-
-```
-src/main/java/org/legendstack/bot/<yourbot>/
-    YourBotConfiguration.java
-    domain/
-        Customer.java       # NamedEntity interface
-        Product.java        # NamedEntity interface
-```
-
-### 2. Write the Configuration
+### Step 2: Define Domain Interfaces
+If you want the bot to have specialized "memory" (entity extraction), define Java interfaces extending `NamedEntity`.
 
 ```java
-package org.legendstack.bot.yourbot;
+public interface SecurityAudit extends NamedEntity {
+    @JsonPropertyDescription("The severity level of the audit finding")
+    String getSeverity();
+}
+```
 
-import com.embabel.dice.common.Relations;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
+### Step 3: Implement Custom Tools
+Create tools and annotate them with `@Service` and `@UnfoldingTools` to expose them to the LLM.
 
-@Configuration
-@Profile("yourbot")
-public class YourBotConfiguration {
-
-    @Bean
-    public Relations yourBotRelations() {
-        return Relations.empty()
-                .withSemanticBetween("Customer", "Product", "purchased",
-                        "customer purchased a product")
-                .withSemanticBetween("Customer", "Customer", "referred",
-                        "customer referred another customer");
+```java
+@Service
+@UnfoldingTools(name = "securityTools", description = "Tools for scanning security vulnerabilities")
+public class SecurityScanTool {
+    @LlmTool
+    public String scanCode(String gitUrl) {
+         // Logic to scan code
+         return "Scan results...";
     }
 }
 ```
 
-### 3. Define Domain Entities
-
-Domain entities are Java **interfaces** extending `NamedEntity`. DICE generates JSON Schema from these to guide LLM extraction.
-
-```java
-package org.legendstack.bot.yourbot.domain;
-
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
-import com.embabel.dice.agent.NamedEntity;
-
-public interface Customer extends NamedEntity {
-    @JsonPropertyDescription("Customer tier: bronze, silver, gold, platinum")
-    String getTier();
-}
-
-public interface Product extends NamedEntity {
-    @JsonPropertyDescription("Product category, e.g. 'electronics', 'apparel'")
-    String getCategory();
-    @JsonPropertyDescription("Price in USD")
-    Double getPrice();
-}
-```
-
-### 4. Add Properties and Templates
-
-**`application-yourbot.properties`:**
-```properties
-botforge.bot-packages=org.legendstack.bot.yourbot
-botforge.persona=yourbot
-botforge.objective=yourbot
-botforge.max-words=100
-botforge.chat-llm.temperature=0.2
-```
-
-**`prompts/personas/yourbot.jinja`:**
-```jinja
-You are a customer success specialist with deep product knowledge.
-You speak clearly, reference product details, and proactively suggest solutions.
-
-{% include "dice/thorough_memory" %}
-```
-
-**`prompts/objectives/yourbot.jinja`:**
-```jinja
-Help users with product inquiries, order troubleshooting, and recommendations.
-Draw on conversation history and the knowledge graph to provide personalized assistance.
-```
-
-### 5. Run
-
-```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=yourbot
-```
-
----
-
-## Extension Axes — Deep Dive
-
-### Properties
-
-Create `application-<profile>.properties` to override any `botforge.*` property. Spring Boot merges these on top of `application.yml` — profile values always win.
-
-| Property | Description | Default |
-|----------|-------------|---------|
-| `botforge.persona` | Persona template name → `prompts/personas/<name>.jinja` | `assistant` |
-| `botforge.objective` | Objective template → `prompts/objectives/<name>.jinja` | `qa` |
-| `botforge.behaviour` | Behaviour template → `prompts/behaviours/<name>.jinja` | `default` |
-| `botforge.max-words` | Soft word limit for responses | `80` |
-| `botforge.chat-llm.model` | LLM model ID | `gpt-4.1-mini` |
-| `botforge.chat-llm.temperature` | LLM temperature | `0.0` |
-| `botforge.memory.enabled` | Enable DICE memory extraction | `true` |
-| `botforge.bot-packages` | Packages to scan for bot components | _(none)_ |
-
-### Jinja Templates
-
-Templates define three aspects of your bot's behavior:
-
-| Template | Purpose | Context Variables |
-|----------|---------|-------------------|
-| `personas/<name>.jinja` | **Voice** — personality, tone, style | `properties`, `user` |
-| `objectives/<name>.jinja` | **Goals** — what the bot should accomplish | `properties`, `user` |
-| `behaviours/<name>.jinja` | **Rules** — behavioral constraints | `properties`, `user` |
-
-Templates can include shared elements:
-```jinja
-{% include "dice/thorough_memory" %}     {# Inject DICE memory instructions #}
-{% include "elements/guardrails" %}      {# Safety guidelines #}
-```
-
-### Domain Model (NamedEntity)
-
-> **This is the most powerful extension axis.** Without domain entities, DICE extracts only untyped propositions. With them, it resolves mentions to typed entities and creates graph relationships.
-
-When the user says _"We're migrating from MongoDB to PostgreSQL"_, DICE:
-1. Extracts the proposition
-2. Resolves "MongoDB" and "PostgreSQL" to `DataStore` entities (because the interface exists)
-3. Creates `(System)-[:READS_FROM]->(DataStore {name: "PostgreSQL"})` (because Relations defines it)
-
-**Interfaces only** — no classes needed. Neo4j nodes are hydrated via dynamic proxies.
-
-### Relations
-
-A `Relations` bean defines how entities connect in the knowledge graph. All `Relations` beans are auto-composed via `@Primary` composite in `PropositionConfiguration`.
+### Step 4: Wire with high-performance Relations
+Define how your domain entities relate to each other in a `@Configuration` class:
 
 ```java
 @Bean
-Relations architecturalRelations() {
+Relations securityRelations() {
     return Relations.empty()
-            .withSemanticBetween("SystemComponent", "DataStore", "reads_from",
-                    "component reads from a data store")
-            .withSemanticBetween("SystemComponent", "ApiEndpoint", "exposes",
-                    "component exposes an API endpoint")
-            .withSemanticBetween("AIAgent", "LLMModel", "calls_model",
-                    "agent calls a specific LLM model");
+            .withSemanticBetween("User", "SecurityAudit", "triggered", "user triggered an audit");
 }
 ```
 
-### Tools and References
-
-Any `Tool`, `LlmReference`, `ToolishRag`, or `Subagent` bean in your `@Configuration` is automatically injected into `ChatActions` via Spring's `List<Tool>` and `List<LlmReference>` collection injection.
-
-```java
-// Custom LLM-callable tool
-@Bean
-public DesignDocumentationTool architectureTools(BotForgeUserService userService) {
-    return new DesignDocumentationTool(userService);
-}
-
-// Profile-scoped document search
-@Bean
-LlmReference scopedDocuments(SearchOperations searchOperations) {
-    return new ToolishRag("scoped_docs", "Domain-specific documents", searchOperations)
-            .withMetadataFilter(new PropertyFilter.Eq("context", "global"))
-            .withUnfolding();
-}
+### Step 5: Activate via Profile
+Create `application-<profile>.properties`:
+```properties
+botforge.chat.persona=<yourpersona>
+botforge.bot-packages=org.legendstack.bot.<yourbot>
+botforge.stylesheet=modern-dark
 ```
 
 ---
 
-## Real Example: The Architect Bot
+## 3. Power Tips for Persona Designers
 
-The `architect` profile ships with BotForge as a reference implementation:
-
-```
-org.legendstack.bot.architect/
-├── ArchitectConfiguration.java          # Relations + DesignDocumentationTool
-└── domain/
-    ├── SystemComponent.java             # Microservices, modules, packages
-    ├── ApiEndpoint.java                 # REST endpoints, GraphQL, gRPC
-    ├── DataStore.java                   # Databases, caches, message queues
-    ├── AIAgent.java                     # LLM-powered agents
-    ├── LLMModel.java                    # Specific LLM models used
-    └── DeploymentTarget.java            # Cloud, on-prem, edge targets
-```
-
-The architect persona template (`prompts/personas/architect.jinja`) defines a **collaborative mentor** that:
-- Asks clarifying questions before proposing designs
-- Provides "Good, Better, Best" options with trade-offs
-- Generates ADRs via the `publish_design_doc` tool
-- Guides developers toward existing enterprise services
+*   **Matryoshka Tools**: Design tools that return summaries of large data, allowing the LLM to drill down only when needed.
+*   **Scoped RAG**: Use `ToolishRag` beans to limit the document search space for specific personas.
+*   **Hybrid Search**: Leverage the `HybridSearchService` in your custom tools to combine semantic and keyword search for high-precision retrieval.
+*   **Analytics Integration**: Use the `AnalyticsService` to track how your custom persona is being used and what tools are most effective.
 
 ---
 
-## How Auto-Discovery Works
+## 4. Summary of Extension Axes
 
-```mermaid
-sequenceDiagram
-    participant Boot as Spring Boot
-    participant Scan as BotPackageScanConfiguration
-    participant Chat as ChatActions
-    participant Prop as PropositionConfiguration
-    participant Registry as PersonaRegistry
+| Axis | Mechanism |
+|---|---|
+| **Tone/Voice** | Jinja2 Persona Templates |
+| **Logic** | Spring `@Service` + `@LlmTool` |
+| **Data Scope** | `ToolishRag` Beans |
+| **Memory Schema** | `NamedEntity` Interfaces |
+| **UI Branding** | Custom CSS Themes |
 
-    Boot->>Scan: Reads botforge.bot-packages
-    Scan->>Scan: ClassPathBeanDefinitionScanner
-    Note over Scan: Discovers @Configuration, @Bean, NamedEntity
-    Scan->>Chat: List<Tool> + List<LlmReference> injected
-    Scan->>Prop: DataDictionary + Relations merged
-    Scan->>Registry: Persona presets loaded
-    Note over Chat: LLM can now use all tools + references
-```
-
-**Key insight:** You don't wire anything manually. Spring's `List<T>` injection and `@Primary` composite pattern mean that any bean you define is automatically available to the entire agent pipeline.
+For more details, see the core [README.md](../README.md#extensibility).

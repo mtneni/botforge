@@ -233,38 +233,19 @@ Documents are chunked, embedded, and stored in Neo4j via Drivine:
 - **Graph relationships** -- Document → section → chunk hierarchy preserved as graph edges
 - **Persistent storage** -- Neo4j container via Docker Compose, survives restarts
 
-## Features
+### Intelligence & Enterprise
+- **Enterprise Intelligence Layer** -- A suite of tools for structured architectural analysis, hybrid search, and conversation management.
+- **Architect Tools** -- Generate ADRs, C4 diagrams, and architectural reviews directly from chat context.
+- **Conversation Search & Export** -- Full-text search across history and export any session as high-fidelity Markdown.
+- **Advanced Admin Dashboard** -- Real-time platform analytics, user activity trends, and deep-dive audit logs.
+- **Hybrid Search Fusion** -- Combines vector embeddings with keyword search via RRF for maximum retrieval precision.
 
-### Core AI
-- **Persona Studio** -- Forge specialized AI identities with unique objectives and behaviors
-- **Agentic Orchestration** -- Automatically selects the best persona for the task via `OrchestratorService`
-- **Hybrid Search** -- Vector similarity + keyword full-text search fused via Reciprocal Rank Fusion (RRF)
-- **Semantic Caching** -- Redis-powered cache that intercepts similar queries to reduce latency and LLM costs
-- **SSE Streaming** -- Real-time "thought" visibility as the agent uses tools and searches documents
-- **Fact Extraction** -- "Learn" from files to build a persistent knowledge graph of user facts via DICE
-- **MCP Support** -- Built-in support for Model Context Protocol tools like Brave Search
-
-### Enterprise & Security
-- **RBAC** -- Role-based access control (`ADMIN`, `USER`) with Spring Security, self-service signup
-- **Audit Logging** -- Every significant action (login, chat, persona switch, document upload) is logged with user, IP, and timestamp
-- **Token Budgets** -- Per-user daily LLM token limits with Redis-backed tracking
-- **Rate Limiting** -- IP- and user-level rate limiting via `RateLimitFilter`
-- **Content Moderation** -- Input sanitization and injection prevention via `ContentModerationFilter`
-- **Multi-Tenancy** -- Team-scoped data isolation across Neo4j, Redis, and all API endpoints
-- **Admin Analytics Dashboard** -- Platform-wide stats, activity breakdown charts, top user leaderboards, and audit log viewer
-
-### Data & Search
-- **Document Ingestion** -- Index PDF, DOCX, XLSX, TXT, MD, HTML via RAG pipeline
-- **Multi-Context Workspaces** -- Personal and global document scopes per user
-- **Conversation Export** -- Download any conversation as Markdown via `/api/chat/{id}/export`
-- **Conversation Search** -- Full-text search across conversation titles and message content
-- **Knowledge Graph** -- Interactive graph visualization of entities and relationships, team-scoped
-- **Session Persistence** -- Full chat history backed by PostgreSQL
-- **Markdown Chat** -- Rich responses with syntax highlighting and message copying
+---
 
 ## Extensibility
 
-BotForge is an extensible template. You never need to modify the core application code -- instead, you add your own package alongside it and activate it with a [Spring profile](https://docs.spring.io/spring-boot/reference/features/profiles.html). The base application provides RAG infrastructure, React UI, [DICE](https://github.com/embabel/dice) semantic memory, and chat plumbing; your profile adds a persona, domain model, tools, stylesheet, and `ToolishRag` configuration to create an entirely different chatbot.
+BotForge is a polymorphic template. You never need to modify the core application code -- instead, you add your own package alongside it and activate it with a [Spring profile](https://docs.spring.io/spring-boot/reference/features/profiles.html).
+ The base application provides RAG infrastructure, React UI, [DICE](https://github.com/embabel/dice) semantic memory, and chat plumbing; your profile adds a persona, domain model, tools, stylesheet, and `ToolishRag` configuration to create an entirely different chatbot.
 
 When no profile is set, the `default` profile is active and BotForge runs as a generic document Q&A assistant. When a profile is activated, its `@Configuration` class provides its own `ToolishRag` and any other beans it needs.
 

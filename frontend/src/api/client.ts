@@ -57,6 +57,16 @@ export const api = {
         request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
     del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 
+    search: <T>(query: string) => request<T>(`/api/chat/search?query=${encodeURIComponent(query)}`),
+
+    export: async (id: string) => {
+        const res = await fetch(`${API_BASE}/api/chat/${id}/export`, {
+            credentials: 'include'
+        });
+        if (!res.ok) throw new Error('Export failed');
+        return res.blob();
+    },
+
     upload: async <T>(path: string, file: File): Promise<T> => {
         const form = new FormData();
         form.append('file', file);

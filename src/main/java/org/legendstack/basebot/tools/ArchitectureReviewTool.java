@@ -13,11 +13,14 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import org.springframework.stereotype.Service;
+
 /**
  * Enterprise architecture tools for structured deliverables:
  * ADRs, architecture review checklists, and C4 diagrams.
  */
 @UnfoldingTools(name = "architectureReviewTools", description = "Tools for generating ADRs, architecture reviews, and C4 diagrams")
+@Service
 public class ArchitectureReviewTool {
 
     private static final Logger logger = LoggerFactory.getLogger(ArchitectureReviewTool.class);

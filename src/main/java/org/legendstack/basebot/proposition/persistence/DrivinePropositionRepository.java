@@ -96,7 +96,6 @@ public class DrivinePropositionRepository implements PropositionRepository {
      * Keyword search using the Neo4j full-text index.
      * Returns proposition IDs ranked by Lucene score, scoped to the user's team.
      */
-    @SuppressWarnings("unchecked")
     public List<String> findByKeyword(String query, String teamId, int limit) {
         var cypher = """
                 CALL db.index.fulltext.queryNodes($indexName, $query) YIELD node, score
@@ -111,7 +110,7 @@ public class DrivinePropositionRepository implements PropositionRepository {
                 "teamId", teamId,
                 "limit", limit);
         try {
-            return (List<String>) (List) persistenceManager.query(
+            return (List<String>) persistenceManager.query(
                     QuerySpecification
                             .withStatement(cypher)
                             .bind(params)
@@ -126,7 +125,6 @@ public class DrivinePropositionRepository implements PropositionRepository {
      * Vector similarity search returning just IDs ranked by score.
      * Convenience method for hybrid search.
      */
-    @SuppressWarnings("unchecked")
     public List<String> findSimilarIds(String query, String teamId, int topK) {
         var embedding = embeddingService.embed(query);
         var cypher = """
@@ -143,7 +141,7 @@ public class DrivinePropositionRepository implements PropositionRepository {
                 "queryVector", embedding,
                 "teamId", teamId);
         try {
-            return (List<String>) (List) persistenceManager.query(
+            return (List<String>) persistenceManager.query(
                     QuerySpecification
                             .withStatement(cypher)
                             .bind(params)

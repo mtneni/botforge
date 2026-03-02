@@ -12,7 +12,9 @@ import {
     Plus,
     Sparkles,
     Palette,
+    Download
 } from 'lucide-react'
+import { api } from '../api/client'
 import { UserDataDialog } from '../components/drawer/UserDrawer'
 import { KnowledgeBaseDialog } from '../components/drawer/GlobalDrawer'
 import { ErrorBoundary } from '../components/ErrorBoundary'
@@ -142,6 +144,24 @@ export function ChatPage() {
         if (tab === 'studio') setShowStudio(true)
     }
 
+    const handleExport = async () => {
+        if (!id) return;
+        try {
+            const blob = await api.export(id);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `conversation-${id}.md`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            success('Conversation exported as Markdown');
+        } catch (err) {
+            console.error('Export failed:', err);
+        }
+    };
+
     const formatTime = (ts?: number) => {
         if (!ts) return ''
         return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -160,6 +180,18 @@ export function ChatPage() {
                             {tagline}
                         </span>
                     </div>
+                </div>
+                <div className="chat-header-right">
+                    {id && (
+                        <button
+                            className="header-action-btn"
+                            onClick={handleExport}
+                            title="Export Conversation"
+                        >
+                            <Download size={18} />
+                            <span>Export</span>
+                        </button>
+                    )}
                 </div>
             </header>
 

@@ -18,6 +18,7 @@ import {
     ChevronRight
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { api } from '../api/client'
 import '../styles/sidebar.css'
 
 interface SidebarProps {
@@ -42,6 +43,9 @@ export function Sidebar({
     const { user, logout } = useAuth()
     const location = useLocation()
 
+    const [searchResults, setSearchResults] = useState<any[]>([])
+    const [isSearching, setIsSearching] = useState(false)
+
     // Keyboard shortcut for toggling sidebar
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -54,12 +58,46 @@ export function Sidebar({
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [])
 
+    // Debounced backend search
+    useEffect(() => {
+        if (!searchQuery.trim() || searchQuery.length < 2) {
+            setSearchResults([])
+            setIsSearching(false)
+            return
+        }
+
+        const timer = setTimeout(async () => {
+            setIsSearching(true)
+            try {
+                // We'll use the api.search we just added to client.ts
+                const results = await api.search<any[]>(searchQuery)
+                setSearchResults(results)
+            } catch (err) {
+                console.error('Search failed:', err)
+            } finally {
+                setIsSearching(false)
+            }
+        }, 400)
+
+        return () => clearTimeout(timer)
+    }, [searchQuery])
+
     const filteredConversations = useMemo(() => {
-        if (!searchQuery.trim()) return conversations
-        return conversations.filter(c =>
-            c.title.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-    }, [conversations, searchQuery])
+        const query = searchQuery.toLowerCase().trim()
+        if (!query) return conversations
+
+        // Combine local results (title match) and backend results (content match)
+        const local = conversations.filter(c => c.title.toLowerCase().includes(query))
+        const combined = [...local]
+
+        searchResults.forEach(sr => {
+            if (!combined.some(c => c.id === sr.id)) {
+                combined.push(sr)
+            }
+        })
+
+        return combined
+    }, [conversations, searchQuery, searchResults])
 
     const toggleSidebar = () => setIsCollapsed(!isCollapsed)
 
@@ -96,7 +134,17 @@ export function Sidebar({
                 </div>
             </header>
 
-            {/* Search hidden for now */}
+            <div className="sidebar-search">
+                <div className="search-input-wrapper">
+                    <Search size={16} className="search-icon" />
+                    <input
+                        type="text"
+                        placeholder="Search conversations..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+            </div>
 
             <div className="sidebar-content">
                 {/* Workspace Section */}
@@ -236,6 +284,6 @@ export function Sidebar({
                     </div>
                 </div>
             </footer>
-        </aside>
+        </aside >
     )
 }
