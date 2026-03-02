@@ -2,6 +2,7 @@ package org.legendstack.basebot.api;
 
 import org.legendstack.basebot.user.BotForgeUserEntity;
 import org.legendstack.basebot.user.BotForgeUserRepository;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -52,6 +53,13 @@ class UserPersistenceE2ETest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+    }
+
+    @AfterAll
+    static void tearDown() {
+        if (postgres.isRunning()) {
+            postgres.stop();
+        }
     }
 
     @Autowired

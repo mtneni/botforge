@@ -5,7 +5,6 @@ import org.legendstack.basebot.observability.BotForgeMetrics;
 import org.legendstack.basebot.audit.AuditService;
 import org.legendstack.basebot.security.TokenBudgetService;
 import com.embabel.agent.api.common.ActionContext;
-import com.embabel.chat.AssistantMessage;
 import com.embabel.chat.UserMessage;
 import com.embabel.chat.Conversation;
 import org.legendstack.basebot.conversation.ConversationService;

@@ -12,8 +12,6 @@ import com.embabel.chat.WindowingConversationFormatter;
 import org.legendstack.basebot.user.BotForgeUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 import org.legendstack.basebot.api.ChatSessionManager;
 import org.legendstack.basebot.conversation.ConversationService;
 

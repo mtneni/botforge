@@ -464,7 +464,6 @@ public class DrivinePropositionRepository implements PropositionRepository {
 
     @Override
     @Transactional(readOnly = true)
-    @SuppressWarnings("unchecked")
     public @NonNull List<Cluster<Proposition>> findClusters(
             double similarityThreshold,
             int topK,

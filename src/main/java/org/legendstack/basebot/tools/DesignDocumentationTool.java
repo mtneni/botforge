@@ -24,6 +24,12 @@ public class DesignDocumentationTool {
     private static final Logger logger = LoggerFactory.getLogger(DesignDocumentationTool.class);
     private static final String DESIGNS_DIR = "workspace/designs";
 
+    private final BotForgeUserService userService;
+
+    public DesignDocumentationTool(BotForgeUserService userService) {
+        this.userService = userService;
+    }
+
     @LlmTool(description = """
             Publish an architectural design document, ADR, or Mermaid diagram to the workspace.
             Use this when you have finalized a design or ADR and want to save it for the developer.
@@ -31,19 +37,20 @@ public class DesignDocumentationTool {
             """)
     public String publishDesignDoc(String docType, String title, String content) {
         try {
-            Path dirPath = Paths.get(DESIGNS_DIR);
+            var user = userService.getAuthenticatedUser();
+            Path dirPath = Paths.get(DESIGNS_DIR, user.getTeamId(), docType.toLowerCase());
             if (!Files.exists(dirPath)) {
                 Files.createDirectories(dirPath);
             }
 
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"));
             String sanitizedTitle = title.replaceAll("[^a-zA-Z0-9]", "_").toLowerCase();
-            String fileName = String.format("%s_%s_%s.md", timestamp, docType.toLowerCase(), sanitizedTitle);
+            String fileName = String.format("%s_%s.md", timestamp, sanitizedTitle);
 
             Path filePath = dirPath.resolve(fileName);
             Files.writeString(filePath, content);
 
-            logger.info("Published design document to: {}", filePath);
+            logger.info("Published design document for team {} to: {}", user.getTeamId(), filePath);
             return "Successfully published " + docType + " to: " + filePath.toAbsolutePath();
         } catch (IOException e) {
             logger.error("Failed to publish design doc", e);
