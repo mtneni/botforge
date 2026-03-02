@@ -33,11 +33,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     });
 
     if (!res.ok) {
-        // Handle session expiration
-        if (res.status === 401 || res.status === 403) {
+        // Handle session expiration or insufficient permissions
+        if (res.status === 401) {
             if (!window.location.pathname.startsWith('/login')) {
                 window.location.href = '/login';
             }
+        } else if (res.status === 403) {
+            // Already logged in but no permission for this specific resource
+            console.error('Forbidden: You do not have permission to access this resource.');
         }
         const err = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(err.error || res.statusText);

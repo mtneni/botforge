@@ -89,7 +89,9 @@ public class DummyBotForgeUserService implements BotForgeUserService {
         return User.withDefaultPasswordEncoder()
                 .username(user.getUsername())
                 .password(user.getUsername())
-                .roles("USER")
+                .authorities(user.getRoles().stream()
+                        .map(r -> "ROLE_" + r)
+                        .toArray(String[]::new))
                 .build();
     }
 }

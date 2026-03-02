@@ -109,12 +109,16 @@ class SecurityConfiguration {
          */
         @Bean
         @Profile("dev")
+        @SuppressWarnings("unused")
         BotForgeUserService dummyBotForgeUserService(
                         com.embabel.agent.rag.service.NamedEntityDataRepository entityRepository) {
                 return new DummyBotForgeUserService(
                                 entityRepository,
-                                new BotForgeUser("alice-id", "Alice Agu", "alice"),
-                                new BotForgeUser("cassie-id", "Cassie Silver", "cassie"),
-                                new BotForgeUser("bob-id", "Bob", "bob"));
+                                new BotForgeUser("alice-id", "Alice Agu", "alice",
+                                                java.util.Set.of("ADMIN", "USER")),
+                                new BotForgeUser("cassie-id", "Cassie Silver", "cassie",
+                                                java.util.Set.of("USER")),
+                                new BotForgeUser("bob-id", "Bob", "bob",
+                                                java.util.Set.of("USER")));
         }
 }
