@@ -9,7 +9,12 @@ import jakarta.persistence.EntityManagerFactory;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
-@EnableJpaRepositories(basePackages = { "org.legendstack.basebot.conversation", "org.legendstack.basebot.api" })
+@EnableJpaRepositories(basePackages = {
+        "org.legendstack.basebot.conversation",
+        "org.legendstack.basebot.api",
+        "org.legendstack.basebot.audit",
+        "org.legendstack.basebot.user"
+})
 public class PersistenceConfiguration {
 
     @Bean
