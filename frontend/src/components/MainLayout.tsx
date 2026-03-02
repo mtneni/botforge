@@ -13,7 +13,13 @@ export function MainLayout() {
     } = useChat()
 
     return (
-        <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden' }}>
+        <div className="main-layout-container" style={{
+            display: 'flex',
+            width: '100%',
+            height: '100vh',
+            overflow: 'hidden',
+            background: 'var(--gradient-bg-main, linear-gradient(135deg, #0f172a 0%, #1e293b 100%))'
+        }}>
             <Sidebar
                 onNewChat={startNewChat}
                 conversations={conversations}
@@ -21,7 +27,14 @@ export function MainLayout() {
                 onDeleteConversation={deleteConversation}
                 onRenameConversation={renameConversation}
             />
-            <div style={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative' }}>
+            <div className="content-area" style={{
+                flex: 1,
+                height: '100%',
+                overflow: 'hidden',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column'
+            }}>
                 <Outlet />
             </div>
         </div>

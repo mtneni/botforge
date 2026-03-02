@@ -11,11 +11,11 @@ import {
     Sparkles,
     Clock,
     User,
-    PanelLeftClose,
-    PanelLeftOpen,
     Edit2,
     Check,
-    Shield
+    Shield,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import '../styles/sidebar.css'
@@ -245,8 +245,7 @@ export function Sidebar({
                         onClick={toggleSidebar}
                         title={isCollapsed ? "Expand Sidebar (Ctrl+B)" : "Close Sidebar (Ctrl+B)"}
                     >
-                        {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-                        <span>{isCollapsed ? "Expand" : "Close Sidebar"}</span>
+                        {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                     </button>
                 </div>
             </footer>
