@@ -40,8 +40,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const logout = useCallback(async () => {
-        await api.post('/api/auth/logout');
-        setUser(null);
+        try {
+            await api.post('/api/auth/logout');
+        } catch (err) {
+            console.error('Logout API failed, forcing client-side logout', err);
+        } finally {
+            setUser(null);
+            // Force a hard reload to clear all states and re-render the app
+            window.location.href = '/login';
+        }
     }, []);
 
     return (

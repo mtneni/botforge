@@ -96,26 +96,11 @@ export function Sidebar({
                 </div>
             </header>
 
-            {!isCollapsed && (
-                <div className="sidebar-search">
-                    <div className="search-wrapper">
-                        <Search size={14} className="search-icon" />
-                        <input
-                            type="text"
-                            className="search-input"
-                            placeholder="Search chats..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            title="Search chats"
-                        />
-                    </div>
-                </div>
-            )}
+            {/* Search hidden for now */}
 
             <div className="sidebar-content">
                 {/* Workspace Section */}
                 <section className="sidebar-section">
-                    {!isCollapsed && <span className="section-label">Workspace</span>}
                     <div className="nav-group">
                         <Link to="/" className="new-chat-btn-link" onClick={() => onNewChat()}>
                             <button className="new-chat-btn" title="New Chat">
@@ -129,10 +114,6 @@ export function Sidebar({
                 {/* Library Section */}
                 {!isCollapsed && (
                     <section className="sidebar-section">
-                        <div className="section-label">
-                            <span>Recent Chats</span>
-                            <Clock size={12} />
-                        </div>
                         <div className="conversation-list">
                             {filteredConversations.length > 0 ? (
                                 filteredConversations.map(conv => (
@@ -203,7 +184,6 @@ export function Sidebar({
             <footer className="sidebar-footer">
                 {/* Resources Section moved to footer */}
                 <section className="sidebar-section footer-resources">
-                    {!isCollapsed && <span className="section-label">Resources</span>}
                     <div className="nav-group">
                         <NavLink to="/knowledge" className="sidebar-link" title="Knowledge Base">
                             <Database size={18} />
@@ -224,29 +204,36 @@ export function Sidebar({
                     </div>
                 </section>
 
-                <div className="user-profile-row">
-                    <button className="user-profile-btn" title={user?.displayName || 'User Profile'}>
-                        <div className="avatar-sphere">
-                            {user?.displayName?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                        <div className="user-meta">
-                            <span className="username-display">{user?.displayName || 'User'}</span>
-                            <span className="user-status">Online</span>
-                        </div>
-                    </button>
-                    <button className="logout-action-btn" onClick={logout} title="Sign Out">
-                        <LogOut size={16} />
-                    </button>
-                </div>
+                <div className="footer-flex-row">
+                    <div className="user-profile-row">
+                        <button className="user-profile-btn" title={user?.displayName || 'User Profile'}>
+                            <div className="avatar-sphere">
+                                {user?.displayName?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                            {!isCollapsed && (
+                                <div className="user-meta">
+                                    <span className="username-display">
+                                        {user?.displayName ? user.displayName.split(' ')[0] : 'User'}
+                                    </span>
+                                </div>
+                            )}
+                        </button>
+                        {!isCollapsed && (
+                            <button className="logout-action-btn" onClick={logout} title="Sign Out">
+                                <LogOut size={16} />
+                            </button>
+                        )}
+                    </div>
 
-                <div className="sidebar-footer-actions">
-                    <button
-                        className="sidebar-toggle-btn"
-                        onClick={toggleSidebar}
-                        title={isCollapsed ? "Expand Sidebar (Ctrl+B)" : "Close Sidebar (Ctrl+B)"}
-                    >
-                        {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-                    </button>
+                    <div className="sidebar-footer-actions">
+                        <button
+                            className="sidebar-toggle-btn"
+                            onClick={toggleSidebar}
+                            title={isCollapsed ? "Expand Sidebar (Ctrl+B)" : "Close Sidebar (Ctrl+B)"}
+                        >
+                            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                        </button>
+                    </div>
                 </div>
             </footer>
         </aside>

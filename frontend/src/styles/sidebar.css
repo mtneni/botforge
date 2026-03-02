@@ -78,10 +78,10 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: var(--space-4) 0;
+    padding: var(--space-2) 0;
     display: flex;
     flex-direction: column;
-    gap: var(--space-6);
+    gap: var(--space-4);
 }
 
 /* Custom Scrollbar */
@@ -348,22 +348,42 @@
     overflow: hidden;
 }
 
+.sidebar-footer {
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--color-glass-border);
+    margin-top: auto;
+}
+
+.footer-flex-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.user-profile-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    flex: 1;
+}
+
 .user-profile-btn {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: 8px;
-    width: 100%;
+    padding: 6px;
     background: transparent;
     border: none;
-    border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: all var(--transition-fast);
     min-width: 0;
+    transition: all var(--transition-fast);
 }
 
 .user-profile-btn:hover {
     background: var(--color-bg-hover);
+    border-radius: 12px;
 }
 
 .avatar-sphere {
@@ -390,17 +410,14 @@
 
 .username-display {
     display: block;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.user-status {
-    font-size: 11px;
-    color: var(--color-text-tertiary);
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.01em;
 }
 
 .logout-action-btn {
@@ -411,24 +428,21 @@
     justify-content: center;
     background: transparent;
     border: none;
-    border-radius: 8px;
-    color: var(--color-text-tertiary);
+    border-radius: 10px;
+    color: var(--color-text-muted);
     cursor: pointer;
     transition: all var(--transition-fast);
     flex-shrink: 0;
 }
 
 .logout-action-btn:hover {
-    background: rgba(255, 77, 77, 0.1);
-    color: #ff4d4d;
+    background: rgba(255, 77, 77, 0.08);
+    color: #ff5c5c;
+    transform: scale(1.05);
 }
 
 .sidebar-footer-actions {
-    margin-top: var(--space-2);
-}
-
-.sidebar-footer-actions {
-    margin-top: var(--space-4);
+    margin-top: 0;
 }
 
 .sidebar-toggle-btn {
@@ -513,10 +527,9 @@
 
 /* Search removed from collapsed JSX */
 
-.collapsed .sidebar-footer {
-    align-items: center;
-    padding-left: 0;
-    padding-right: 0;
+.collapsed .footer-flex-row {
+    flex-direction: column;
+    gap: var(--space-4);
 }
 
 .collapsed .user-profile-row {
