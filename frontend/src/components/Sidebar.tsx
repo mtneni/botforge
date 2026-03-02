@@ -15,7 +15,9 @@ import {
     Check,
     Shield,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Loader2,
+    X
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { api } from '../api/client'
@@ -134,17 +136,29 @@ export function Sidebar({
                 </div>
             </header>
 
-            <div className="sidebar-search">
-                <div className="search-input-wrapper">
-                    <Search size={16} className="search-icon" />
-                    <input
-                        type="text"
-                        placeholder="Search conversations..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+            {!isCollapsed && (
+                <div className="sidebar-search">
+                    <div className="search-input-wrapper">
+                        {isSearching ? (
+                            <Loader2 size={16} className="search-icon spinning" />
+                        ) : (
+                            <Search size={16} className="search-icon" />
+                        )}
+                        <input
+                            type="text"
+                            placeholder="Search conversation..."
+                            className="search-input"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="sidebar-content">
                 {/* Workspace Section */}
