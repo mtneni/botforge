@@ -35,7 +35,7 @@ public class GraphRestController {
      */
     private static final String NODE_QUERY_TEMPLATE = """
             MATCH (n)
-            WHERE (n.context = $contextId OR n.contextId = $contextId OR n:NamedEntity OR n:Proposition)
+            WHERE (n.context = $contextId OR n.contextId = $contextId OR n['X-Tika-Metadata-context'] = $contextId OR n:NamedEntity OR n:Proposition)
               AND coalesce(n.teamId, $teamId) = $teamId
             WITH n LIMIT 400
             RETURN %s(n) as nodeId,
@@ -49,9 +49,9 @@ public class GraphRestController {
      */
     private static final String LINK_QUERY_TEMPLATE = """
             MATCH (n)-[r]->(m)
-            WHERE (n.context = $contextId OR n.contextId = $contextId OR n:NamedEntity OR n:Proposition)
+            WHERE (n.context = $contextId OR n.contextId = $contextId OR n['X-Tika-Metadata-context'] = $contextId OR n:NamedEntity OR n:Proposition)
               AND coalesce(n.teamId, $teamId) = $teamId
-              AND (m.context = $contextId OR m.contextId = $contextId OR m:NamedEntity OR m:Proposition)
+              AND (m.context = $contextId OR m.contextId = $contextId OR m['X-Tika-Metadata-context'] = $contextId OR m:NamedEntity OR m:Proposition)
               AND coalesce(m.teamId, $teamId) = $teamId
             RETURN %s(n) as sourceId, type(r) as relType, %s(m) as targetId,
                    head(labels(m)) as targetLabel,
