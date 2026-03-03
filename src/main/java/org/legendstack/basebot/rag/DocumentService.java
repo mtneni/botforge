@@ -84,7 +84,7 @@ public class DocumentService {
                     continue;
                 documents.add(new DocumentInfo(
                         root.getUri(),
-                        root.getTitle(),
+                        resolveTitle(root.getTitle(), root.getUri()),
                         context,
                         0,
                         root.getIngestionTimestamp()));
@@ -198,10 +198,36 @@ public class DocumentService {
         documents.removeIf(d -> d.uri().equals(document.getUri()));
         documents.add(new DocumentInfo(
                 document.getUri(),
-                document.getTitle(),
+                resolveTitle(document.getTitle(), document.getUri()),
                 context.effectiveContext(),
                 chunkCount,
                 Instant.now()));
+    }
+
+    /**
+     * Resolve a human-readable title: prefer Tika-extracted title,
+     * fall back to filename extracted from the URI.
+     */
+    private static String resolveTitle(String tikaTitle, String uri) {
+        if (tikaTitle != null && !tikaTitle.isBlank()
+                && !tikaTitle.toLowerCase().contains("parse error")
+                && !tikaTitle.toLowerCase().contains("unknown")
+                && !tikaTitle.contains("://")) {
+            return tikaTitle;
+        }
+        if (uri == null)
+            return "Untitled";
+        // Extract filename from URI (handles upload://ctx/hash/file.md,
+        // file:///path/to/file.md, etc.)
+        int lastSlash = uri.lastIndexOf('/');
+        String filename = lastSlash >= 0 ? uri.substring(lastSlash + 1) : uri;
+        // Remove extension for a cleaner display name
+        int dot = filename.lastIndexOf('.');
+        if (dot > 0) {
+            filename = filename.substring(0, dot);
+        }
+        // Replace underscores/dashes with spaces and title-case
+        return filename.replace('_', ' ').replace('-', ' ');
     }
 
     /**

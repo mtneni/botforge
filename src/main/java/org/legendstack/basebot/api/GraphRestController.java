@@ -28,22 +28,35 @@ public class GraphRestController {
     private final BotForgeUserService userService;
 
     /**
-     * Cypher template with a placeholder for the ID function name.
+     * Cypher template for fetching nodes only.
      * Neo4j 5.x uses {@code elementId()}, older versions use {@code id()}.
      * Scoped by teamId to enforce multi-tenant data isolation.
+     * Returns only scalar values to avoid Drivine deserialization issues.
      */
-    private static final String GRAPH_QUERY_TEMPLATE = """
+    private static final String NODE_QUERY_TEMPLATE = """
             MATCH (n)
             WHERE (n.context = $contextId OR n.contextId = $contextId OR n:NamedEntity OR n:Proposition)
               AND coalesce(n.teamId, $teamId) = $teamId
             WITH n LIMIT 400
-            OPTIONAL MATCH (n)-[r]->(m)
-            WHERE (m.context = $contextId OR m.contextId = $contextId OR m:NamedEntity OR m:Proposition)
+            RETURN %s(n) as nodeId,
+                   head(labels(n)) as nodeLabel,
+                   coalesce(n.name, n.title, n.text, head(labels(n))) as nodeName
+            """;
+
+    /**
+     * Cypher template for fetching relationships between known nodes.
+     * Returns only scalar values.
+     */
+    private static final String LINK_QUERY_TEMPLATE = """
+            MATCH (n)-[r]->(m)
+            WHERE (n.context = $contextId OR n.contextId = $contextId OR n:NamedEntity OR n:Proposition)
+              AND coalesce(n.teamId, $teamId) = $teamId
+              AND (m.context = $contextId OR m.contextId = $contextId OR m:NamedEntity OR m:Proposition)
               AND coalesce(m.teamId, $teamId) = $teamId
-            RETURN
-                %s(n) as sourceId, labels(n) as sourceLabels, properties(n) as sourceProps,
-                type(r) as relType,
-                %s(m) as targetId, labels(m) as targetLabels, properties(m) as targetProps
+            RETURN %s(n) as sourceId, type(r) as relType, %s(m) as targetId,
+                   head(labels(m)) as targetLabel,
+                   coalesce(m.name, m.title, m.text, head(labels(m))) as targetName
+            LIMIT 800
             """;
 
     public GraphRestController(PersistenceManager persistenceManager, BotForgeUserService userService) {
@@ -73,43 +86,81 @@ public class GraphRestController {
     }
 
     /**
-     * Executes the graph query with the specified ID function (elementId or id)
-     * and transforms the result into a nodes + links structure.
+     * Executes two separate graph queries (nodes + links) to avoid OPTIONAL MATCH
+     * null issues in Drivine's result mapper, and transforms the result into a
+     * nodes + links structure.
      */
     @SuppressWarnings("unchecked")
     private Map<String, Object> executeGraphQuery(String contextId, String teamId, String idFunction) {
-        String cypher = GRAPH_QUERY_TEMPLATE.formatted(idFunction, idFunction);
-
         Map<String, Object> params = new HashMap<>();
         params.put("contextId", contextId);
         params.put("teamId", teamId);
 
-        List<Map<String, Object>> rows = (List<Map<String, Object>>) (List) persistenceManager.query(
-                QuerySpecification.withStatement(cypher)
-                        .bind(params)
-                        .transform(Map.class));
-
-        if (rows == null) {
-            return Map.of("nodes", Collections.emptyList(), "links", Collections.emptyList());
+        // --- Query 1: Fetch all nodes ---
+        String nodeCypher = NODE_QUERY_TEMPLATE.formatted(idFunction);
+        List<Map<String, Object>> nodeRows;
+        try {
+            nodeRows = (List<Map<String, Object>>) (List) persistenceManager.query(
+                    QuerySpecification.withStatement(nodeCypher)
+                            .bind(params)
+                            .transform(Map.class));
+        } catch (Exception e) {
+            logger.warn("Node query failed: {}", e.getMessage());
+            nodeRows = Collections.emptyList();
         }
 
         Map<String, Map<String, Object>> nodes = new HashMap<>();
-        List<Map<String, Object>> links = new ArrayList<>();
-
-        for (Map<String, Object> row : rows) {
-            if (row == null || row.get("sourceId") == null) {
-                continue;
+        if (nodeRows != null) {
+            for (Map<String, Object> row : nodeRows) {
+                if (row == null || row.get("nodeId") == null)
+                    continue;
+                String nodeId = row.get("nodeId").toString();
+                String label = row.get("nodeLabel") != null ? row.get("nodeLabel").toString() : "Node";
+                String name = row.get("nodeName") != null ? row.get("nodeName").toString() : label;
+                nodes.computeIfAbsent(nodeId, id -> {
+                    Map<String, Object> node = new HashMap<>();
+                    node.put("id", id);
+                    node.put("labels", List.of(label));
+                    node.put("name", truncate(name, 40));
+                    node.put("properties", Collections.emptyMap());
+                    return node;
+                });
             }
+        }
 
-            String sourceId = row.get("sourceId").toString();
-            nodes.computeIfAbsent(sourceId, id -> formatNode(id, (List<String>) row.get("sourceLabels"),
-                    (Map<String, Object>) row.get("sourceProps")));
+        // --- Query 2: Fetch relationships ---
+        String linkCypher = LINK_QUERY_TEMPLATE.formatted(idFunction, idFunction);
+        List<Map<String, Object>> linkRows;
+        try {
+            linkRows = (List<Map<String, Object>>) (List) persistenceManager.query(
+                    QuerySpecification.withStatement(linkCypher)
+                            .bind(params)
+                            .transform(Map.class));
+        } catch (Exception e) {
+            logger.warn("Link query failed: {}", e.getMessage());
+            linkRows = Collections.emptyList();
+        }
 
-            Object targetIdObj = row.get("targetId");
-            if (targetIdObj != null) {
-                String targetId = targetIdObj.toString();
-                nodes.computeIfAbsent(targetId, id -> formatNode(id, (List<String>) row.get("targetLabels"),
-                        (Map<String, Object>) row.get("targetProps")));
+        List<Map<String, Object>> links = new ArrayList<>();
+        if (linkRows != null) {
+            for (Map<String, Object> row : linkRows) {
+                if (row == null || row.get("sourceId") == null || row.get("targetId") == null)
+                    continue;
+
+                String sourceId = row.get("sourceId").toString();
+                String targetId = row.get("targetId").toString();
+
+                // Ensure target node is in the node map
+                nodes.computeIfAbsent(targetId, id -> {
+                    String tLabel = row.get("targetLabel") != null ? row.get("targetLabel").toString() : "Node";
+                    String tName = row.get("targetName") != null ? row.get("targetName").toString() : tLabel;
+                    Map<String, Object> node = new HashMap<>();
+                    node.put("id", id);
+                    node.put("labels", List.of(tLabel));
+                    node.put("name", truncate(tName, 40));
+                    node.put("properties", Collections.emptyMap());
+                    return node;
+                });
 
                 Map<String, Object> link = new HashMap<>();
                 link.put("source", sourceId);
@@ -122,32 +173,10 @@ public class GraphRestController {
         return Map.of("nodes", nodes.values(), "links", links);
     }
 
-    private Map<String, Object> formatNode(String id, List<String> labels, Map<String, Object> props) {
-        Map<String, Object> node = new HashMap<>();
-        node.put("id", id);
-        node.put("labels", labels != null ? labels : Collections.emptyList());
-
-        String name = resolveName(labels, props);
-        node.put("name", name);
-        node.put("properties", props != null ? props : Collections.emptyMap());
-        return node;
-    }
-
-    private String resolveName(List<String> labels, Map<String, Object> props) {
-        if (props != null) {
-            if (props.containsKey("name"))
-                return (String) props.get("name");
-            if (props.containsKey("title"))
-                return (String) props.get("title");
-            if (props.containsKey("text")) {
-                String text = (String) props.get("text");
-                return text != null && text.length() > 30 ? text.substring(0, 27) + "..." : text;
-            }
-        }
-        if (labels != null && !labels.isEmpty()) {
-            return labels.get(0);
-        }
-        return "Node";
+    private static String truncate(String s, int maxLen) {
+        if (s == null)
+            return "Node";
+        return s.length() > maxLen ? s.substring(0, maxLen - 3) + "..." : s;
     }
 
     private ResponseEntity<Map<String, Object>> errorResponse(Exception e) {
