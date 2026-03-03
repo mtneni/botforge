@@ -38,9 +38,11 @@ public class GraphRestController {
             WHERE (n.context = $contextId OR n.contextId = $contextId OR n['X-Tika-Metadata-context'] = $contextId OR n:NamedEntity OR n:Proposition)
               AND coalesce(n.teamId, $teamId) = $teamId
             WITH n LIMIT 400
-            RETURN %s(n) as nodeId,
-                   head(labels(n)) as nodeLabel,
-                   coalesce(n.name, n.title, n.text, head(labels(n))) as nodeName
+            RETURN {
+                nodeId: %s(n),
+                nodeLabel: head(labels(n)),
+                nodeName: coalesce(n.name, n.title, n.text, head(labels(n)))
+            } as node
             """;
 
     /**
@@ -53,9 +55,13 @@ public class GraphRestController {
               AND coalesce(n.teamId, $teamId) = $teamId
               AND (m.context = $contextId OR m.contextId = $contextId OR m['X-Tika-Metadata-context'] = $contextId OR m:NamedEntity OR m:Proposition)
               AND coalesce(m.teamId, $teamId) = $teamId
-            RETURN %s(n) as sourceId, type(r) as relType, %s(m) as targetId,
-                   head(labels(m)) as targetLabel,
-                   coalesce(m.name, m.title, m.text, head(labels(m))) as targetName
+            RETURN {
+                sourceId: %s(n),
+                relType: type(r),
+                targetId: %s(m),
+                targetLabel: head(labels(m)),
+                targetName: coalesce(m.name, m.title, m.text, head(labels(m)))
+            } as link
             LIMIT 800
             """;
 
@@ -110,15 +116,12 @@ public class GraphRestController {
         String nodeCypher = NODE_QUERY_TEMPLATE.formatted(idFunction);
         List<Map<String, Object>> nodeRows;
         try {
-            nodeRows = (List<Map<String, Object>>) (List) persistenceManager.query(
+            nodeRows = (List<Map<String, Object>>) (List<?>) persistenceManager.query(
                     QuerySpecification.withStatement(nodeCypher)
                             .bind(params)
                             .transform(Map.class));
-            logger.info("Node query returned {} rows for context: {} and team: {}", 
-                nodeRows != null ? nodeRows.size() : 0, contextId, teamId);
-            if (nodeRows != null && !nodeRows.isEmpty()) {
-                logger.debug("First node row: {}", nodeRows.get(0));
-            }
+            logger.info("Node query returned {} rows for context: {} and team: {}",
+                    nodeRows != null ? nodeRows.size() : 0, contextId, teamId);
         } catch (Exception e) {
             logger.warn("Node query failed: {}", e.getMessage());
             nodeRows = Collections.emptyList();
@@ -127,11 +130,13 @@ public class GraphRestController {
         Map<String, Map<String, Object>> nodes = new HashMap<>();
         if (nodeRows != null) {
             for (Map<String, Object> row : nodeRows) {
-                if (row == null || row.get("nodeId") == null)
+                Map<String, Object> nodeData = (Map<String, Object>) row.get("node");
+                if (nodeData == null || nodeData.get("nodeId") == null)
                     continue;
-                String nodeId = row.get("nodeId").toString();
-                String label = row.get("nodeLabel") != null ? row.get("nodeLabel").toString() : "Node";
-                String name = row.get("nodeName") != null ? row.get("nodeName").toString() : label;
+
+                String nodeId = nodeData.get("nodeId").toString();
+                String label = nodeData.get("nodeLabel") != null ? nodeData.get("nodeLabel").toString() : "Node";
+                String name = nodeData.get("nodeName") != null ? nodeData.get("nodeName").toString() : label;
                 nodes.computeIfAbsent(nodeId, id -> {
                     Map<String, Object> node = new HashMap<>();
                     node.put("id", id);
@@ -147,7 +152,7 @@ public class GraphRestController {
         String linkCypher = LINK_QUERY_TEMPLATE.formatted(idFunction, idFunction);
         List<Map<String, Object>> linkRows;
         try {
-            linkRows = (List<Map<String, Object>>) (List) persistenceManager.query(
+            linkRows = (List<Map<String, Object>>) (List<?>) persistenceManager.query(
                     QuerySpecification.withStatement(linkCypher)
                             .bind(params)
                             .transform(Map.class));
@@ -159,16 +164,17 @@ public class GraphRestController {
         List<Map<String, Object>> links = new ArrayList<>();
         if (linkRows != null) {
             for (Map<String, Object> row : linkRows) {
-                if (row == null || row.get("sourceId") == null || row.get("targetId") == null)
+                Map<String, Object> linkData = (Map<String, Object>) row.get("link");
+                if (linkData == null || linkData.get("sourceId") == null || linkData.get("targetId") == null)
                     continue;
 
-                String sourceId = row.get("sourceId").toString();
-                String targetId = row.get("targetId").toString();
+                String sourceId = linkData.get("sourceId").toString();
+                String targetId = linkData.get("targetId").toString();
 
                 // Ensure target node is in the node map
                 nodes.computeIfAbsent(targetId, id -> {
-                    String tLabel = row.get("targetLabel") != null ? row.get("targetLabel").toString() : "Node";
-                    String tName = row.get("targetName") != null ? row.get("targetName").toString() : tLabel;
+                    String tLabel = linkData.get("targetLabel") != null ? linkData.get("targetLabel").toString() : "Node";
+                    String tName = linkData.get("targetName") != null ? linkData.get("targetName").toString() : tLabel;
                     Map<String, Object> node = new HashMap<>();
                     node.put("id", id);
                     node.put("labels", List.of(tLabel));
@@ -180,7 +186,7 @@ public class GraphRestController {
                 Map<String, Object> link = new HashMap<>();
                 link.put("source", sourceId);
                 link.put("target", targetId);
-                link.put("type", row.get("relType"));
+                link.put("type", linkData.get("relType"));
                 links.add(link);
             }
         }
