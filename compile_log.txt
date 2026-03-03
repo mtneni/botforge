@@ -1,0 +1,57 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.embabel:botforge >------------------------
+[INFO] Building botforge 0.1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ botforge ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 22 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ botforge ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 105 source files with javac [debug parameters release 25] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /G:/ws-spring-ai/urbot/src/main/java/org/legendstack/basebot/ResponsePipeline.java:[124,55] cannot find symbol
+  symbol:   method getName()
+  location: variable t of type com.embabel.agent.api.tool.Tool
+[ERROR] /G:/ws-spring-ai/urbot/src/main/java/org/legendstack/basebot/api/PersonaController.java:[191,56] cannot find symbol
+  symbol:   method name()
+  location: variable t of type com.embabel.agent.api.tool.Tool
+[ERROR] /G:/ws-spring-ai/urbot/src/main/java/org/legendstack/basebot/api/PersonaController.java:[192,58] cannot find symbol
+  symbol:   method name()
+  location: variable t of type com.embabel.agent.api.tool.Tool
+[ERROR] /G:/ws-spring-ai/urbot/src/main/java/org/legendstack/basebot/api/PersonaController.java:[193,65] cannot find symbol
+  symbol:   method description()
+  location: variable t of type com.embabel.agent.api.tool.Tool
+[INFO] 4 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.682 s
+[INFO] Finished at: 2026-03-02T22:38:50-06:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project botforge: Compilation failure: Compilation failure: 
+[ERROR] /G:/ws-spring-ai/urbot/src/main/java/org/legendstack/basebot/ResponsePipeline.java:[124,55] cannot find symbol
+[ERROR]   symbol:   method getName()
+[ERROR]   location: variable t of type com.embabel.agent.api.tool.Tool
+[ERROR] /G:/ws-spring-ai/urbot/src/main/java/org/legendstack/basebot/api/PersonaController.java:[191,56] cannot find symbol
+[ERROR]   symbol:   method name()
+[ERROR]   location: variable t of type com.embabel.agent.api.tool.Tool
+[ERROR] /G:/ws-spring-ai/urbot/src/main/java/org/legendstack/basebot/api/PersonaController.java:[192,58] cannot find symbol
+[ERROR]   symbol:   method name()
+[ERROR]   location: variable t of type com.embabel.agent.api.tool.Tool
+[ERROR] /G:/ws-spring-ai/urbot/src/main/java/org/legendstack/basebot/api/PersonaController.java:[193,65] cannot find symbol
+[ERROR]   symbol:   method description()
+[ERROR]   location: variable t of type com.embabel.agent.api.tool.Tool
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

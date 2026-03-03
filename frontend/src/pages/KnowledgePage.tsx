@@ -35,6 +35,7 @@ export function KnowledgePage() {
     const [docStats, setDocStats] = useState<any>(null)
     const [schema, setSchema] = useState<any[]>([])
     const [url, setUrl] = useState('')
+    const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
     const [viewingDocChunks, setViewingDocChunks] = useState<string | null>(null)
 
     const loadData = useCallback(async () => {
@@ -58,13 +59,16 @@ export function KnowledgePage() {
 
     useEffect(() => { loadData() }, [loadData])
 
-    const handleDeleteDoc = async (docName: string) => {
-        if (!confirm('Are you sure you want to remove this document from the knowledge base?')) return
+    const handleDeleteDoc = async (uri: string) => {
         try {
-            await api.del(`/api/documents?uri=${encodeURIComponent(docName)}`)
-            toast.success('Document deleted successfully')
+            await api.del(`/api/documents?uri=${encodeURIComponent(uri)}`)
+            toast.success('Asset decommissioned')
+            setConfirmingDelete(null)
             loadData()
-        } catch { toast.error('Failed to delete document') }
+        } catch (err) {
+            console.error('Deletion failure:', err)
+            toast.error('Failed to remove asset')
+        }
     }
 
     const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -214,12 +218,33 @@ export function KnowledgePage() {
                                                 <div className="card-top-row">
                                                     <div className="card-icon"><FileText size={20} /></div>
                                                     <div className="card-actions">
-                                                        <button onClick={() => setViewingDocChunks(d.uri)} title="View segments">
-                                                            <Layers size={14} />
-                                                        </button>
-                                                        <button onClick={() => handleDeleteDoc(d.uri)} title="Remove" className="danger">
-                                                            <Trash2 size={14} />
-                                                        </button>
+                                                        {confirmingDelete === d.uri ? (
+                                                            <div className="inline-confirm" style={{ display: 'flex', gap: '8px', animation: 'fadeIn 0.2s ease-out' }}>
+                                                                <button
+                                                                    onClick={() => handleDeleteDoc(d.uri)}
+                                                                    className="danger-btn"
+                                                                    style={{ padding: '2px 8px', fontSize: '10px', height: '22px' }}
+                                                                >
+                                                                    Confirm
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setConfirmingDelete(null)}
+                                                                    className="secondary-btn"
+                                                                    style={{ padding: '2px 8px', fontSize: '10px', height: '22px' }}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <button onClick={() => setViewingDocChunks(d.uri)} title="View segments">
+                                                                    <Layers size={14} />
+                                                                </button>
+                                                                <button onClick={() => setConfirmingDelete(d.uri)} title="Remove" className="danger">
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="card-info">

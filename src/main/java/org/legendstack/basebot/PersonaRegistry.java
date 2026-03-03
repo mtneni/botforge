@@ -25,15 +25,15 @@ public class PersonaRegistry {
          */
         public static final List<PersonaPreset> PRESETS = List.of(
                         new PersonaPreset("assistant", "Assistant", "qa", "default",
-                                        "Thoughtful, precise knowledge assistant", "sparkles"),
+                                        "Thoughtful, precise knowledge assistant", "sparkles", null, null),
                         new PersonaPreset("security", "Security", "security", "default",
-                                        "Deep code audits and compliance checks", "shield"),
+                                        "Deep code audits and compliance checks", "shield", null, null),
                         new PersonaPreset("developer", "Developer", "developer", "default",
-                                        "Fast reasoning profile optimized for coding tasks", "zap"),
+                                        "Fast reasoning profile optimized for coding tasks", "zap", null, null),
                         new PersonaPreset("architect", "Architect", "architect", "default",
-                                        "High-level system design, data strategy, and technical governance", "layers"),
+                                        "High-level system design, data strategy, and technical governance", "layers", null, null),
                         new PersonaPreset("orchestrator", "Orchestrator", "orchestrator", "default",
-                                        "Intelligent router that delegates to specialized identities", "network"));
+                                        "Intelligent router that delegates to specialized identities", "network", null, null));
 
         public record PersonaPreset(
                         String id,
@@ -41,7 +41,9 @@ public class PersonaRegistry {
                         String objective,
                         String behaviour,
                         String description,
-                        String icon) {
+                        String icon,
+                        String systemPrompt,
+                        String toolIds) {
         }
 
         public PersonaRegistry(CustomPersonaRepository customPersonaRepository) {
@@ -61,7 +63,8 @@ public class PersonaRegistry {
                 }
                 return customPersonaRepository.findById(personaId)
                                 .map(c -> new PersonaPreset(c.getId(), c.getDisplayName(),
-                                                c.getObjective(), c.getBehaviour(), c.getDescription(), c.getIcon()));
+                                                c.getObjective(), c.getBehaviour(), c.getDescription(), c.getIcon(),
+                                                c.getSystemPrompt(), c.getToolIds()));
         }
 
         /**
@@ -70,7 +73,8 @@ public class PersonaRegistry {
         public List<PersonaPreset> allForUser(String userId) {
                 var custom = customPersonaRepository.findByUserId(userId).stream()
                                 .map(c -> new PersonaPreset(c.getId(), c.getDisplayName(),
-                                                c.getObjective(), c.getBehaviour(), c.getDescription(), c.getIcon()))
+                                                c.getObjective(), c.getBehaviour(), c.getDescription(), c.getIcon(),
+                                                c.getSystemPrompt(), c.getToolIds()))
                                 .toList();
                 return Stream.concat(PRESETS.stream(), custom.stream()).toList();
         }

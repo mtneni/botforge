@@ -241,16 +241,45 @@ public class DocumentService {
      * Delete a document by its URI.
      */
     public boolean deleteDocument(String uri) {
-        logger.info("Deleting document: {}", uri);
-        var result = contentRepository.deleteRootAndDescendants(uri);
+        logger.info("Deleting document request: {}", uri);
+        String normalizedTarget = normalizeUri(uri);
+
+        // First find the actual stored URI by matching normalized versions
+        String actualStoredUri = documents.stream()
+                .map(DocumentInfo::uri)
+                .filter(storedUri -> normalizeUri(storedUri).equals(normalizedTarget))
+                .findFirst()
+                .orElse(uri); // Fallback to original if not in tracking list
+
+        logger.info("Normalized delete match: target={} -> actualStoredUri={}", normalizedTarget, actualStoredUri);
+
+        var result = contentRepository.deleteRootAndDescendants(actualStoredUri);
         if (result != null) {
-            documents.stream()
-                    .filter(doc -> doc.uri().equals(uri))
-                    .findFirst()
-                    .ifPresent(documents::remove);
+            documents.removeIf(doc -> normalizeUri(doc.uri()).equals(normalizedTarget));
             return true;
         }
         return false;
+    }
+
+    /**
+     * Normalize URIs to handle variations in slashes (file:/, file:///, file://)
+     * and URL-encoded characters.
+     */
+    public static String normalizeUri(String uri) {
+        if (uri == null)
+            return null;
+        try {
+            // Unquote and normalize slashes
+            String decoded = java.net.URLDecoder.decode(uri, java.nio.charset.StandardCharsets.UTF_8);
+            if (decoded.startsWith("file:")) {
+                // file:/C:/... OR file:///C:/... OR file:C:/...
+                // Make it consistently file:/[Path]
+                return "file:/" + decoded.substring(5).replace("\\", "/").replaceAll("^/+", "");
+            }
+            return decoded;
+        } catch (Exception e) {
+            return uri;
+        }
     }
 
     /**

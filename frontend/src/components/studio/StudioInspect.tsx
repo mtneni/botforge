@@ -8,6 +8,8 @@ interface PersonaPreset {
     description: string
     icon: string
     active: boolean
+    systemPrompt?: string
+    toolIds?: string
 }
 
 interface StudioInspectProps {
@@ -76,7 +78,7 @@ export function StudioInspect({ persona, onClose, onSwitch, onEdit, onArchive }:
 
                     <div className="detail-section">
                         <h4 style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>
-                            Primary Directive
+                            Primary Directive / System Prompt
                         </h4>
                         <div style={{
                             background: 'rgba(255,255,255,0.03)',
@@ -87,18 +89,25 @@ export function StudioInspect({ persona, onClose, onSwitch, onEdit, onArchive }:
                             fontSize: '0.9rem',
                             whiteSpace: 'pre-wrap'
                         }}>
-                            {persona.objective || 'Standard operational logic.'}
+                            {persona.systemPrompt || persona.objective || 'Standard operational logic.'}
                         </div>
                     </div>
 
                     <div className="detail-section">
                         <h4 style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>
-                            Capabilities
+                            Neural Capabilities
                         </h4>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             <span className="schema-tag">{persona.behaviour} MODE</span>
-                            <span className="schema-tag">DICE MEMORY</span>
-                            <span className="schema-tag">TOOL ACCESS</span>
+                            {persona.toolIds ? (
+                                persona.toolIds.split(',').map(toolId => (
+                                    <span key={toolId} className="schema-tag" style={{ background: 'rgba(232, 121, 249, 0.1)', color: '#e879f9' }}>
+                                        {toolId.toUpperCase()}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className="schema-tag">STANDARD TOOLS</span>
+                            )}
                         </div>
                     </div>
 

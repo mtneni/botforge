@@ -31,6 +31,8 @@ public class BotForgeUser implements User, Person {
     private volatile String personaOverride;
     private volatile String objectiveOverride;
     private volatile String behaviourOverride;
+    private volatile String systemPromptOverride;
+    private volatile String toolIdsOverride;
 
     public BotForgeUser(String id, String displayName, String username) {
         this(id, displayName, username, "default-team", Set.of("USER"));
@@ -171,5 +173,21 @@ public class BotForgeUser implements User, Person {
 
     public void setBehaviourOverride(String b) {
         this.behaviourOverride = b;
+    }
+
+    public String getSystemPromptOverride() {
+        return systemPromptOverride;
+    }
+
+    public void setSystemPromptOverride(String s) {
+        this.systemPromptOverride = s;
+    }
+
+    public String getToolIdsOverride() {
+        return toolIdsOverride;
+    }
+
+    public void setToolIdsOverride(String t) {
+        this.toolIdsOverride = t;
     }
 }
