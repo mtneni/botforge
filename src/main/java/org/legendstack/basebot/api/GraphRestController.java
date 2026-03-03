@@ -66,18 +66,28 @@ public class GraphRestController {
 
     @GetMapping("/data")
     public ResponseEntity<Map<String, Object>> getGraphData(@RequestParam(required = false) String contextId) {
-        var user = userService.getAuthenticatedUser();
-        var effectiveContextId = contextId != null ? contextId : user.effectiveContext();
-        if (effectiveContextId == null) {
-            effectiveContextId = "personal";
+        String teamId = "global";
+        String effectiveContextId = contextId != null ? contextId : "personal";
+
+        try {
+            var user = userService.getAuthenticatedUser();
+            if (user != null) {
+                teamId = user.getTeamId() != null ? user.getTeamId() : "global";
+                effectiveContextId = contextId != null ? contextId : user.effectiveContext();
+                if (effectiveContextId == null) {
+                    effectiveContextId = "personal";
+                }
+            }
+        } catch (Exception ignored) {
+            // Unauthenticated requests use defaults
         }
 
         try {
-            return ResponseEntity.ok(executeGraphQuery(effectiveContextId, user.getTeamId(), "elementId"));
+            return ResponseEntity.ok(executeGraphQuery(effectiveContextId, teamId, "elementId"));
         } catch (Exception e) {
             logger.warn("Graph query with elementId failed, trying id() fallback: {}", e.getMessage());
             try {
-                return ResponseEntity.ok(executeGraphQuery(effectiveContextId, user.getTeamId(), "id"));
+                return ResponseEntity.ok(executeGraphQuery(effectiveContextId, teamId, "id"));
             } catch (Exception fallbackError) {
                 logger.error("Graph query fallback also failed", fallbackError);
                 return errorResponse(fallbackError);
@@ -104,6 +114,11 @@ public class GraphRestController {
                     QuerySpecification.withStatement(nodeCypher)
                             .bind(params)
                             .transform(Map.class));
+            logger.info("Node query returned {} rows for context: {} and team: {}", 
+                nodeRows != null ? nodeRows.size() : 0, contextId, teamId);
+            if (nodeRows != null && !nodeRows.isEmpty()) {
+                logger.debug("First node row: {}", nodeRows.get(0));
+            }
         } catch (Exception e) {
             logger.warn("Node query failed: {}", e.getMessage());
             nodeRows = Collections.emptyList();

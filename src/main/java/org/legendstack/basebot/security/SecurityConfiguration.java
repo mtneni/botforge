@@ -59,6 +59,7 @@ class SecurityConfiguration {
                                                                 "/v3/api-docs/**")
                                                 .permitAll()
                                                 .requestMatchers("/actuator/**").permitAll()
+                                                .requestMatchers("/api/graph/**", "/api/documents/**").permitAll()
                                                 .requestMatchers("/api/**").authenticated()
                                                 .anyRequest().permitAll())
                                 .userDetailsService(userService)
