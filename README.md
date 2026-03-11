@@ -19,12 +19,6 @@ Upload documents, ask questions, and get intelligent answers grounded in your co
 
 BotForge is designed to be **extended without modification**. The core application provides the full RAG infrastructure, React UI, memory system, and chat plumbing out of the box. To build your own chatbot, you add a [Spring profile](https://docs.spring.io/spring-boot/reference/features/profiles.html) with your persona, domain model, tools, and styling -- all in a separate package, without touching any existing code.
 
-<p align="center">
-  <img src="images/cassie_cat_memories.jpg" width="700" alt="architext chatbot answering a question about the user's pets, drawing on extracted memories">
-  <br>
-  <em>The architext chatbot (running on the <a href="https://github.com/embabel/urbot/tree/architext">architext branch</a>) recalls facts learned from uploaded files and conversation, stored as typed entities in the knowledge graph.</em>
-</p>
-
 ---
 
 ## Architecture
