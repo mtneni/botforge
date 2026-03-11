@@ -17,7 +17,7 @@
 
 Upload documents, ask questions, and get intelligent answers grounded in your content -- powered by agentic Retrieval-Augmented Generation with Neo4j graph-backed vector search, [DICE](https://github.com/embabel/dice) semantic memory, and a built-in **Persona Studio** for forging custom AI identities.
 
-BotForge is designed to be **extended without modification**. The core application provides the full RAG infrastructure, React UI, memory system, and chat plumbing out of the box. To build your own chatbot, you add a [Spring profile](https://docs.spring.io/spring-boot/reference/features/profiles.html) with your persona, domain model, tools, and styling -- all in a separate package, without touching any existing code.
+BotForge is designed to be **extended without modification**. The core application provides the full RAG infrastructure, React UI, memory system, and chat plumbing out of the box. To buildfor the pipeline wiring. your own chatbot, you add a [Spring profile](https://docs.spring.io/spring-boot/reference/features/profiles.html) with your persona, domain model, tools, and styling -- all in a separate package, without touching any existing code.
 
 ---
 
@@ -34,6 +34,7 @@ graph TB
     end
 
     subgraph App["Spring Boot Application"]
+        SSE[SSE Emitter: Real-time Streams]
         subgraph Agent["Embabel Agent Platform"]
             CA[ChatActions: Agentic RAG]
             OC[Orchestrator: Auto-Specialization]
@@ -53,7 +54,7 @@ graph TB
             AU[Audit Logging]
             TB[Token Budget Service]
             RL[Rate Limiting & Content Moderation]
-            RBAC[RBAC: ADMIN / USER roles]
+            RBAC[RBAC & Multi-tenant Isolation]
         end
     end
 
@@ -67,6 +68,8 @@ graph TB
 
     CV --> CA
     PS --> CA
+    CA --> SSE
+    SSE -- "Real-time Thoughts" --> CV
     CA --> SC
     CA --> OC
     CA --> RP
@@ -148,11 +151,6 @@ The same pipeline also runs incrementally on conversation messages: every few tu
 
 See [`IncrementalPropositionExtraction`](src/main/java/org/legendstack/basebot/proposition/extraction/IncrementalPropositionExtraction.java) for the extraction flow and [`PropositionConfiguration`](src/main/java/org/legendstack/basebot/proposition/PropositionConfiguration.java) for the pipeline wiring.
 
-<p align="center">
-  <img src="images/cassie_memory_clusters.jpg" width="600" alt="Memory tab showing extracted propositions clustered by topic">
-  <br>
-  <em>The Memory tab in the User Drawer showing 68 propositions extracted from uploaded files and conversation, clustered by topic. Each cluster groups related facts -- here about Cassie's pet Artemis, her gardening, cooking, and podcast habits.</em>
-</p>
 
 **Entity extraction requires domain model interfaces.** Without `NamedEntity` subinterfaces (like `Pet`, `Place`, `Band`), DICE has no schema to guide extraction and will only extract untyped propositions. See [Domain Model](#3-domain-model-namedentity-interfaces) below.
 
@@ -160,16 +158,17 @@ See [`IncrementalPropositionExtraction`](src/main/java/org/legendstack/basebot/p
 
 | Layer | Technology | Role |
 |---|---|---|
-| **Frontend** | [React 19](https://react.dev/) | Modern UI with glassmorphism, dark mode, responsive design |
-| **Backend** | [Spring Boot 3.5](https://spring.io/projects/spring-boot) | Application framework (Java 25) |
-| **Agent Framework** | [Embabel Agent](https://github.com/embabel/embabel-agent) | Agentic AI orchestration & Utility AI pattern |
-| **Semantic Memory** | [DICE](https://github.com/embabel/dice) | Fact extraction & knowledge graph projection |
-| **Vector + Graph Store** | [Neo4j](https://neo4j.com/) | Vector embeddings, full-text indexing, knowledge graph |
-| **Relational Store** | [PostgreSQL](https://www.postgresql.org/) | Chat history, audit logs, user accounts, personas |
-| **Cache + Rate Limiting** | [Redis](https://redis.io/) | Semantic cache, token budgets, rate limit counters |
-| **Document Parsing** | [Apache Tika](https://tika.apache.org/) | Extract text from 1000+ file formats |
-| **Search** | Hybrid (Vector + Keyword) | Reciprocal Rank Fusion combining cosine similarity and Lucene full-text |
-| **LLM** | OpenAI / Anthropic / Ollama | Multi-provider support for reasoning and embeddings |
+| **Frontend** | [React 19](https://react.dev/) | Modern UI with SSE visualization, glassmorphism, and responsive design |
+| **Backend** | [Spring Boot 3.5.10](https://spring.io/projects/spring-boot) | Application framework (Java 25) with SSE and JPA support |
+| **Agent Framework** | [Embabel Agent 0.3.5](https://github.com/embabel/embabel-agent) | Agentic AI orchestration & Utility AI pattern |
+| **Semantic Memory** | [DICE](https://github.com/embabel/dice) | Fact extraction, entity resolution, and knowledge graph projection |
+| **Vector + Graph Store** | [Neo4j 5+](https://neo4j.com/) | Vector embeddings, full-text indexing, and knowledge graph storage |
+| **Relational Store** | [PostgreSQL](https://www.postgresql.org/) | Multi-tenant chat history, audit logs, and persona persistence |
+| **Cache + Rate Limiting** | [Redis](https://redis.io/) | Semantic cache for LLM responses and token budget counters |
+| **Document Parsing** | [Apache Tika](https://tika.apache.org/) | Extract text and metadata from 1000+ file formats |
+| **Search** | [Hybrid Search Fusion](https://github.com/embabel/dice) | Combining Vector (Cosine) and Keyword (Lucene) via RRF |
+| **LLM** | OpenAI / Anthropic / Ollama | Multi-provider support for reasoning (GPT-4o, Claude 3.5, etc.) |
+| **Architecture Tools**| [Architect Bot Profile](#example-architect-software-architecture-bot) | Specialized persona for ADRs, C4 diagrams, and design reviews |
 
 ### Embabel Agent Framework
 
@@ -193,7 +192,8 @@ The frontend is built with React 19 and TypeScript, served via Vite 6:
 - `LoginPage.tsx` -- Authentication with role-based access
 - `Sidebar.tsx` -- Quick switching between conversations and active personas
 - **Responsive glassmorphism** -- Modern, high-performance UI with dark mode and smooth transitions
-- **SSE Integration** -- Real-time streaming of assistant thoughts and tool execution progress
+- **Interactive Knowledge Graph** -- Force-directed graph visualization of extracted entities and their relationships.
+- **SSE Integration** -- Real-time streaming of assistant thoughts and tool execution progress, providing immediate feedback during complex reasoning.
 
 ## Persona Studio
 
@@ -226,11 +226,23 @@ Documents are chunked, embedded, and stored in Neo4j via Drivine:
 - **Persistent storage** -- Neo4j container via Docker Compose, survives restarts
 
 ### Intelligence & Enterprise
+
 - **Enterprise Intelligence Layer** -- A suite of tools for structured architectural analysis, hybrid search, and conversation management.
-- **Architect Tools** -- Generate ADRs, C4 diagrams, and architectural reviews directly from chat context.
-- **Conversation Search & Export** -- Full-text search across history and export any session as high-fidelity Markdown.
-- **Advanced Admin Dashboard** -- Real-time platform analytics, user activity trends, and deep-dive audit logs.
-- **Hybrid Search Fusion** -- Combines vector embeddings with keyword search via RRF for maximum retrieval precision.
+- **Architect Tools** -- Specialized persona that generates ADRs, C4 diagrams, and architectural reviews directly from chat context.
+- **Hybrid Search Fusion (RRF)** -- Combines vector embeddings with keyword search via **Reciprocal Rank Fusion**. This ensures that exact keyword matches (like specific product IDs or names) are surfaced alongside semantically similar concepts. See [`HybridSearchService`](src/main/java/org/legendstack/basebot/rag/HybridSearchService.java).
+- **Audit & Governance** -- Full-text search across history and export any session as high-fidelity Markdown. Includes a built-in audit log for compliance.
+- **Advanced Admin Dashboard** -- Real-time platform analytics, user activity trends, and token budget monitoring.
+
+### SSE Real-time Streaming
+
+BotForge uses **Server-Sent Events (SSE)** to provide a responsive "Thinking" experience. Instead of waiting for a complete JSON response, the UI receives a stream of events:
+
+1.  **`THOUGHT`** -- Real-time stream of the assistant's internal reasoning process.
+2.  **`TOOL_BEGIN`** -- Notification when a tool (like Search or Memory) starts executing.
+3.  **`TOOL_PROGRESS`** -- Incremental updates from long-running tools.
+4.  **`MESSAGE`** -- Final synthesized response chunks.
+
+This architecture ensures users stay engaged while complex agentic retrieval is happening in the background. See [`SseOutputChannel`](src/main/java/org/legendstack/basebot/api/SseOutputChannel.java) for implementation.
 
 ---
 
