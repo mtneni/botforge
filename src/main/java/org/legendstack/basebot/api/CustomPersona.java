@@ -22,11 +22,17 @@ public class CustomPersona {
     private String description;
     private String icon;
 
+    @Column(columnDefinition = "TEXT")
+    private String systemPrompt;
+
+    @Column(name = "tool_ids")
+    private String toolIds;
+
     public CustomPersona() {
     }
 
     public CustomPersona(String id, String userId, String displayName, String objective, String behaviour,
-            String description, String icon) {
+            String description, String icon, String systemPrompt, String toolIds) {
         this.id = id;
         this.userId = userId;
         this.displayName = displayName;
@@ -34,6 +40,8 @@ public class CustomPersona {
         this.behaviour = behaviour;
         this.description = description;
         this.icon = icon;
+        this.systemPrompt = systemPrompt;
+        this.toolIds = toolIds;
     }
 
     public String getId() {
@@ -90,5 +98,21 @@ public class CustomPersona {
 
     public void setIcon(String icon) {
         this.icon = icon;
+    }
+
+    public String getSystemPrompt() {
+        return systemPrompt;
+    }
+
+    public void setSystemPrompt(String systemPrompt) {
+        this.systemPrompt = systemPrompt;
+    }
+
+    public String getToolIds() {
+        return toolIds;
+    }
+
+    public void setToolIds(String toolIds) {
+        this.toolIds = toolIds;
     }
 }

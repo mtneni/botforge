@@ -97,11 +97,11 @@
 /* Search Bar */
 .sidebar-search {
     padding: var(--space-4) var(--space-3) 0;
-    margin-bottom: 0px;
+    margin-bottom: var(--space-1);
     transition: all var(--transition-base);
 }
 
-.search-wrapper {
+.search-input-wrapper {
     position: relative;
     display: flex;
     align-items: center;
@@ -109,50 +109,77 @@
 
 .search-icon {
     position: absolute;
-    left: 12px;
-    color: var(--color-text-tertiary);
-    transition: left var(--transition-base);
+    left: 14px;
+    color: var(--color-text-muted);
+    transition: color var(--transition-base);
+    z-index: 2;
+}
+
+.search-icon.spinning {
+    animation: spin 1s linear infinite;
+    color: var(--color-accent);
 }
 
 .search-input {
     width: 100%;
-    background: var(--color-bg-elevated);
+    background: var(--color-bg-tertiary);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--color-glass-border);
     border-radius: var(--radius-lg);
-    padding: 10px 12px 10px 38px;
+    padding: 12px 14px 12px 42px;
     color: var(--color-text-primary);
     font-size: 13px;
+    font-family: 'Outfit', sans-serif;
     transition: all var(--transition-base);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .search-input:focus {
     outline: none;
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 2px var(--color-accent-subtle);
+    background: var(--color-bg-elevated);
+    box-shadow: 0 0 0 3px var(--color-accent-subtle), 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.clear-search-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-primary);
+    transform: scale(1.1);
 }
 
 /* Sections */
 .sidebar-section {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 
 .section-label {
-    padding: 0 var(--space-4);
-    margin-bottom: 8px;
+    padding: var(--space-4) var(--space-4) var(--space-2);
     font-size: 11px;
     font-weight: 700;
-    color: var(--color-text-tertiary);
+    color: var(--color-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    white-space: nowrap;
-    overflow: hidden;
-    opacity: 1;
-    transition: opacity var(--transition-fast), height var(--transition-fast);
 }
 
 /* Sidebar Nav Items */
@@ -258,7 +285,7 @@
     display: flex;
     align-items: center;
     position: relative;
-    overflow: hidden;
+    border: 1px solid transparent;
 }
 
 .conversation-item {
@@ -267,16 +294,17 @@
     align-items: center;
     justify-content: flex-start;
     gap: var(--space-3);
-    padding: 10px 12px;
+    padding: 12px 14px;
     border-radius: var(--radius-md);
     line-height: 1;
     color: var(--color-text-secondary);
     text-decoration: none;
     font-size: 13px;
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     min-width: 0;
-    transition: color var(--transition-fast);
+    transition: all var(--transition-fast);
 }
 
 .conversation-item span {
@@ -286,20 +314,35 @@
 }
 
 .conversation-item-wrapper:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--color-bg-hover);
+    border-color: var(--color-glass-border);
 }
 
 .conversation-item-wrapper:hover .conversation-item {
     color: var(--color-text-primary);
+    transform: translateX(2px);
 }
 
 .conversation-item-wrapper.active {
-    background: var(--color-bg-elevated);
+    background: var(--color-accent-subtle);
+    border-color: rgba(124, 77, 255, 0.3);
+}
+
+.conversation-item-wrapper.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 16px;
+    background: var(--color-accent);
+    border-radius: 0 4px 4px 0;
 }
 
 .conversation-item-wrapper.active .conversation-item {
     color: var(--color-accent);
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .delete-conv-btn:hover {

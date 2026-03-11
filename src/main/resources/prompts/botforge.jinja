@@ -1,3 +1,10 @@
+{% if system_prompt_override %}
+============
+# Custom Instructions
+{{ system_prompt_override }}
+============
+{% endif %}
+
 {% include "elements/user.jinja" %}
 
 {% include "elements/guardrails.jinja" %}

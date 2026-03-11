@@ -1,6 +1,6 @@
 services:
   neo4j:
-    image: neo4j:5-community
+    image: neo4j:community
     container_name: botforge-neo4j
     ports:
       - "7891:7687"   # Bolt protocol
@@ -32,13 +32,13 @@ services:
     volumes:
       - botforge-redis-data:/data
 
-  astrology-api:
+  architect-api:
     profiles:
-      - astrology
+      - architect
     build:
       context: .
-      dockerfile: Dockerfile.astrology-api
-    container_name: botforge-astrology-api
+      dockerfile: Dockerfile.architect-api
+    container_name: botforge-architect-api
     ports:
       - "3000:3000"
 

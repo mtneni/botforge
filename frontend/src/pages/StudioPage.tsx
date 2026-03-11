@@ -22,6 +22,7 @@ export function StudioPage() {
     const [personas, setPersonas] = useState<PersonaPreset[]>([])
     const [switching, setSwitching] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
+    const [availableTools, setAvailableTools] = useState<any[]>([])
     const [view, setView] = useState<'library' | 'forge' | 'sandbox'>('library')
     const [inspecting, setInspecting] = useState<PersonaPreset | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
@@ -33,6 +34,8 @@ export function StudioPage() {
         objective: '',
         behaviour: 'default',
         description: '',
+        systemPrompt: '',
+        toolIds: '',
         tone: 50,
         voice: 50
     })
@@ -47,7 +50,10 @@ export function StudioPage() {
 
     useEffect(() => {
         loadPersonas()
-    }, [loadPersonas])
+        api.get<any[]>('/api/personas/tools')
+            .then(setAvailableTools)
+            .catch(() => toast.error('Failed to load capabilities'))
+    }, [loadPersonas, toast])
 
     const activePersona = useMemo(() => personas.find(p => p.active), [personas])
 
@@ -75,8 +81,8 @@ export function StudioPage() {
             return
         }
 
-        if (!formData.displayName || !formData.objective) {
-            toast.error('Identity name and objective are required')
+        if (!formData.displayName || (!formData.objective && !formData.systemPrompt)) {
+            toast.error('Identity name and a primary directive or system prompt are required')
             return
         }
         try {
@@ -91,7 +97,16 @@ export function StudioPage() {
             }
             loadPersonas()
             setView('library')
-            setForm({ displayName: '', objective: '', behaviour: 'default', description: '', tone: 50, voice: 50 })
+            setForm({
+                displayName: '',
+                objective: '',
+                behaviour: 'default',
+                description: '',
+                systemPrompt: '',
+                toolIds: '',
+                tone: 50,
+                voice: 50
+            })
         } catch (e) {
             toast.error(editingId ? 'Recalibration failed' : 'Forge failed')
         }
@@ -116,6 +131,8 @@ export function StudioPage() {
             objective: p.objective,
             behaviour: p.behaviour,
             description: p.description,
+            systemPrompt: (p as any).systemPrompt || '',
+            toolIds: (p as any).toolIds || '',
             tone: 50,
             voice: 50
         })
@@ -244,8 +261,13 @@ export function StudioPage() {
                         <StudioForge
                             editingId={editingId}
                             initialForm={form}
+                            availableTools={availableTools}
                             onSave={handleSavePersona}
-                            onCancel={() => { setView('library'); setEditingId(null); setForm({ displayName: '', objective: '', behaviour: 'default', description: '', tone: 50, voice: 50 }); }}
+                            onCancel={() => {
+                                setView('library');
+                                setEditingId(null);
+                                setForm({ displayName: '', objective: '', behaviour: 'default', description: '', tone: 50, voice: 50, systemPrompt: '', toolIds: '' } as any);
+                            }}
                         />
                     ) : (
                         <div style={{ maxWidth: '640px', margin: '0 auto' }}>

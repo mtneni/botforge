@@ -21,9 +21,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class ResponsePipeline {
@@ -114,7 +118,12 @@ public class ResponsePipeline {
                 "Prompt length: " + userPrompt.length() + " chars, Est. LLM tokens: " + estTokens);
 
         // --- Assemble RAG references and tools ---
-        var tools = new LinkedList<>(globalTools);
+        var tools = globalTools.stream().collect(Collectors.toCollection(LinkedList::new));
+        if (user.getToolIdsOverride() != null && !user.getToolIdsOverride().isBlank()) {
+            Set<String> allowedIds = new HashSet<>(Arrays.asList(user.getToolIdsOverride().split(",")));
+            tools.removeIf(t -> !allowedIds.contains(t.getDefinition().getName()));
+        }
+
         var references = new LinkedList<>(globalReferences);
         references.add(user.personalDocs(searchOperations));
         if (properties.memory().enabled()) {
@@ -136,7 +145,9 @@ public class ResponsePipeline {
                 .respondWithSystemPrompt(conversation, Map.of(
                         "properties", effectiveProperties,
                         "user", user,
-                        "working_memory", workingMemory));
+                        "working_memory", workingMemory,
+                        "system_prompt_override",
+                        user.getSystemPromptOverride() != null ? user.getSystemPromptOverride() : ""));
 
         var msg = conversation.addMessage(assistantMessage);
 

@@ -89,4 +89,25 @@ export const api = {
         }
         return res.json();
     },
+
+    personas: {
+        list: () => request<any[]>('/api/personas'),
+        active: () => request<any>('/api/personas/active'),
+        switch: (personaId: string) => request<any>('/api/personas/active', {
+            method: 'POST',
+            body: JSON.stringify({ personaId })
+        }),
+        create: (data: any) => request<any>('/api/personas', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+        update: (id: string, data: any) => request<any>(`/api/personas/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        }),
+        delete: (id: string) => request<any>(`/api/personas/${id}`, {
+            method: 'DELETE'
+        }),
+        listTools: () => request<any[]>('/api/personas/tools'),
+    }
 };

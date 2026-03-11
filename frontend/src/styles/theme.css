@@ -3,54 +3,49 @@
    ========================================= */
 
 :root {
-  /* Gemini-inspired palette — Deep Space & Charcoal */
-  --color-bg-primary: #0a0a0f;
-  /* Deep charcoal background */
-  --color-bg-secondary: rgba(20, 20, 30, 0.4);
-  /* Secondary surface for sidebars/inputs */
-  --color-bg-tertiary: rgba(25, 25, 40, 0.5);
-  /* Elevated surface */
-  --color-bg-elevated: rgba(35, 35, 50, 0.6);
-  --color-bg-hover: rgba(50, 50, 70, 0.6);
+  /* Premium Indigo & Midnight Palette */
+  --color-bg-primary: #05050a;
+  --color-bg-secondary: rgba(13, 13, 25, 0.7);
+  /* Deep indigo tint */
+  --color-bg-tertiary: rgba(22, 22, 45, 0.6);
+  --color-bg-elevated: rgba(30, 30, 60, 0.75);
+  --color-bg-hover: rgba(50, 50, 90, 0.5);
 
-  /* Interaction & Accents */
-  --color-accent: #8ab4f8;
-  /* Gemini Blue */
-  --color-accent-hover: #aecbfa;
-  --color-accent-subtle: rgba(138, 180, 248, 0.15);
-  --color-accent-glow: rgba(138, 180, 248, 0.25);
+  /* Interaction & Accents — Vibrant & Harmonious */
+  --color-accent: #7c4dff;
+  /* Electric Indigo */
+  --color-accent-hover: #9e7aff;
+  --color-accent-subtle: rgba(124, 77, 255, 0.12);
+  --color-accent-glow: rgba(124, 77, 255, 0.35);
 
-  /* Text */
-  --color-text-primary: #e3e3e3;
-  /* High emphasis text */
-  --color-text-secondary: #c4c7c5;
-  /* Medium emphasis */
-  --color-text-muted: #9aa0a6;
-  /* Low emphasis */
-  --color-text-inverse: #131314;
+  /* Text — High Contrast & Readability */
+  --color-text-primary: #f8f9fa;
+  --color-text-secondary: #d1d5db;
+  --color-text-muted: #9ca3af;
+  --color-text-inverse: #05050a;
 
-  /* Gradients */
-  --gradient-gemini: linear-gradient(135deg, #4285f4 0%, #9b72cb 50%, #d96570 100%);
-  --gradient-gemini-vibrant: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-  --gradient-purple: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-fade: linear-gradient(180deg, transparent 0%, var(--color-bg-primary) 100%);
-  --gradient-aura: radial-gradient(circle at 50% -20%, rgba(138, 180, 248, 0.15), transparent 70%);
+  /* Premium Gradients */
+  --gradient-gemini: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  --gradient-indigo: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --gradient-vibrant: linear-gradient(90deg, #8b5cf6 0%, #d946ef 100%);
+  --gradient-aura: radial-gradient(circle at 50% -20%, rgba(124, 77, 255, 0.2), transparent 75%);
 
-  /* Glass / Border effects */
-  --color-glass: rgba(255, 255, 255, 0.04);
-  --color-glass-border: rgba(255, 255, 255, 0.08);
+  /* Enhanced Glassmorphism */
+  --color-glass: rgba(255, 255, 255, 0.03);
+  --color-glass-border: rgba(255, 255, 255, 0.12);
+  --color-glass-thick: rgba(255, 255, 255, 0.06);
 
   /* Status */
-  --color-success: #81c995;
-  --color-warning: #fdd663;
-  --color-error: #f28b82;
-  --color-info: #8ab4f8;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
 
-  /* Typography — Geometric Sans-Serif */
-  --font-sans: 'Inter', 'Google Sans', 'Roboto', -apple-system, sans-serif;
+  /* Typography */
+  --font-sans: 'Outfit', 'Inter', -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Spacing — Generous margins */
+  /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -59,26 +54,26 @@
   --space-6: 32px;
   --space-8: 48px;
 
-  /* Radius — Extreme rounding (Pill shapes) */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-2xl: 48px;
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 40px;
   --radius-full: 9999px;
 
   /* Layout */
-  --sidebar-width: 280px;
-  --sidebar-mini-width: 68px;
+  --sidebar-width: 290px;
+  --sidebar-mini-width: 72px;
   --header-height: 64px;
-  --max-chat-width: 840px;
-  --max-page-width: 1200px;
-  --drawer-width: 520px;
+  --max-chat-width: 860px;
+  --max-page-width: 1440px;
+  --drawer-width: 540px;
 
   /* Transitions */
-  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: 0.15s ease;
 }
 

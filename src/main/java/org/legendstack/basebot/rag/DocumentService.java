@@ -84,7 +84,7 @@ public class DocumentService {
                     continue;
                 documents.add(new DocumentInfo(
                         root.getUri(),
-                        root.getTitle(),
+                        resolveTitle(root.getTitle(), root.getUri()),
                         context,
                         0,
                         root.getIngestionTimestamp()));
@@ -198,10 +198,36 @@ public class DocumentService {
         documents.removeIf(d -> d.uri().equals(document.getUri()));
         documents.add(new DocumentInfo(
                 document.getUri(),
-                document.getTitle(),
+                resolveTitle(document.getTitle(), document.getUri()),
                 context.effectiveContext(),
                 chunkCount,
                 Instant.now()));
+    }
+
+    /**
+     * Resolve a human-readable title: prefer Tika-extracted title,
+     * fall back to filename extracted from the URI.
+     */
+    private static String resolveTitle(String tikaTitle, String uri) {
+        if (tikaTitle != null && !tikaTitle.isBlank()
+                && !tikaTitle.toLowerCase().contains("parse error")
+                && !tikaTitle.toLowerCase().contains("unknown")
+                && !tikaTitle.contains("://")) {
+            return tikaTitle;
+        }
+        if (uri == null)
+            return "Untitled";
+        // Extract filename from URI (handles upload://ctx/hash/file.md,
+        // file:///path/to/file.md, etc.)
+        int lastSlash = uri.lastIndexOf('/');
+        String filename = lastSlash >= 0 ? uri.substring(lastSlash + 1) : uri;
+        // Remove extension for a cleaner display name
+        int dot = filename.lastIndexOf('.');
+        if (dot > 0) {
+            filename = filename.substring(0, dot);
+        }
+        // Replace underscores/dashes with spaces and title-case
+        return filename.replace('_', ' ').replace('-', ' ');
     }
 
     /**
@@ -241,16 +267,45 @@ public class DocumentService {
      * Delete a document by its URI.
      */
     public boolean deleteDocument(String uri) {
-        logger.info("Deleting document: {}", uri);
-        var result = contentRepository.deleteRootAndDescendants(uri);
+        logger.info("Deleting document request: {}", uri);
+        String normalizedTarget = normalizeUri(uri);
+
+        // First find the actual stored URI by matching normalized versions
+        String actualStoredUri = documents.stream()
+                .map(DocumentInfo::uri)
+                .filter(storedUri -> normalizeUri(storedUri).equals(normalizedTarget))
+                .findFirst()
+                .orElse(uri); // Fallback to original if not in tracking list
+
+        logger.info("Normalized delete match: target={} -> actualStoredUri={}", normalizedTarget, actualStoredUri);
+
+        var result = contentRepository.deleteRootAndDescendants(actualStoredUri);
         if (result != null) {
-            documents.stream()
-                    .filter(doc -> doc.uri().equals(uri))
-                    .findFirst()
-                    .ifPresent(documents::remove);
+            documents.removeIf(doc -> normalizeUri(doc.uri()).equals(normalizedTarget));
             return true;
         }
         return false;
+    }
+
+    /**
+     * Normalize URIs to handle variations in slashes (file:/, file:///, file://)
+     * and URL-encoded characters.
+     */
+    public static String normalizeUri(String uri) {
+        if (uri == null)
+            return null;
+        try {
+            // Unquote and normalize slashes
+            String decoded = java.net.URLDecoder.decode(uri, java.nio.charset.StandardCharsets.UTF_8);
+            if (decoded.startsWith("file:")) {
+                // file:/C:/... OR file:///C:/... OR file:C:/...
+                // Make it consistently file:/[Path]
+                return "file:/" + decoded.substring(5).replace("\\", "/").replaceAll("^/+", "");
+            }
+            return decoded;
+        } catch (Exception e) {
+            return uri;
+        }
     }
 
     /**

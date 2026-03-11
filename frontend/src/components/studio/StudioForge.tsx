@@ -8,14 +8,17 @@ interface StudioForgeProps {
         objective: string
         behaviour: string
         description: string
+        systemPrompt: string
+        toolIds: string
         tone?: number
         voice?: number
     }
+    availableTools: Array<{ id: string, name: string, description: string }>
     onSave: (form: any) => void
     onCancel: () => void
 }
 
-export function StudioForge({ editingId, initialForm, onSave, onCancel }: StudioForgeProps) {
+export function StudioForge({ editingId, initialForm, availableTools, onSave, onCancel }: StudioForgeProps) {
     const [form, setForm] = useState(initialForm)
 
     const handleSubmit = () => {
@@ -49,14 +52,57 @@ export function StudioForge({ editingId, initialForm, onSave, onCancel }: Studio
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Primary Directive</label>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Primary Directive (Short Summary)</label>
                     <textarea
                         className="url-input"
                         placeholder="Define its internal objective... (e.g. Always prioritize security, be concise, use technical terminology)"
                         value={form.objective}
                         onChange={e => setForm({ ...form, objective: e.target.value })}
-                        style={{ width: '100%', minHeight: '120px', borderRadius: '12px', padding: '12px' }}
+                        style={{ width: '100%', minHeight: '80px', borderRadius: '12px', padding: '12px' }}
                     />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>System Prompt (Detailed Instructions)</label>
+                    <textarea
+                        className="url-input"
+                        placeholder="Detailed system instructions... (e.g. You are a senior software architect. Follow C4 modeling principles...)"
+                        value={form.systemPrompt}
+                        onChange={e => setForm({ ...form, systemPrompt: e.target.value })}
+                        style={{ width: '100%', minHeight: '160px', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-accent)' }}
+                    />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Capabilities (Tools)</label>
+                    <div className="glass-card" style={{ padding: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px', background: 'rgba(255,255,255,0.02)' }}>
+                        {availableTools.map(tool => {
+                            const isSelected = form.toolIds.split(',').includes(tool.id);
+                            return (
+                                <button
+                                    key={tool.id}
+                                    onClick={() => {
+                                        const current = form.toolIds ? form.toolIds.split(',') : [];
+                                        const next = isSelected
+                                            ? current.filter(id => id !== tool.id)
+                                            : [...current, tool.id];
+                                        setForm({ ...form, toolIds: next.filter(Boolean).join(',') });
+                                    }}
+                                    className={`schema-tag ${isSelected ? 'active' : ''}`}
+                                    style={{
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        background: isSelected ? 'var(--color-accent)' : 'rgba(255,255,255,0.05)',
+                                        color: isSelected ? '#fff' : 'var(--color-text-secondary)',
+                                        borderColor: isSelected ? 'var(--color-accent)' : 'transparent'
+                                    }}
+                                    title={tool.description}
+                                >
+                                    {tool.name}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 {/* Advanced Sliders for Tone/Voice */}
